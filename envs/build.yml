@@ -1,0 +1,19 @@
+name: tethys-nf-build
+channels: [conda-forge, bioconda]
+dependencies:
+  - python >=3.11
+  - pyrodigal >=3
+  - skani
+  - hmmer
+  - pyhmmer
+  - kofamscan
+  - checkm2
+  - pandas
+  - numpy
+  - networkx
+  - click
+  - biopython
+  - samtools
+  - pip
+  - pip:
+      - pykofamsearch

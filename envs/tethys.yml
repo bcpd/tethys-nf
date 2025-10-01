@@ -1,0 +1,19 @@
+name: tethys-nf
+channels: [conda-forge, bioconda]
+dependencies:
+  - python >=3.11
+  - pandas
+  - numpy
+  - pyarrow
+  - fastparquet
+  - xarray
+  - h5netcdf
+  - tqdm
+  - pyfastx
+  - samtools
+  - salmon
+  - sylph
+  - pip
+  - pip:
+      - pyexeggutor
+      - kegg-pathway-profiler
