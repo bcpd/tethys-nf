@@ -9,4 +9,4 @@ dependencies:
   - diamond>=2.1,<2.2
   - pip
   - pip:
-      - checkm2==1.0.2
+      - checkm2==1.0.1
