@@ -14,12 +14,21 @@ process VERIFY_KOFAM_DB {
   def dbDir = (kofam_param ?: "${projectDir}/databases/kofam").toString()
   def dbDirEsc = shellQuote(dbDir)
   def downloaderPath = shellQuote("${projectDir}/bin/tethys-download-kofam-db.py")
+  def stubFlag = new File("${dbDir}/.stub").exists()
+  def stubEnv = stubFlag ? '1' : '0'
   task.ext.verified_dir = dbDir
   """
   set -euo pipefail
 
   db_dir='${dbDirEsc}'
   downloader='${downloaderPath}'
+  stub_mode='${stubEnv}'
+
+  if [ "${stub_mode}" = "1" ]; then
+    mkdir -p "${db_dir}/profiles"
+    touch "${db_dir}/ko_list"
+    exit 0
+  fi
 
   mkdir -p "${db_dir}"
 

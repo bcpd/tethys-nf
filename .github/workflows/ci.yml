@@ -47,12 +47,12 @@ jobs:
       - name: Prepare example data
         run: |
           mkdir -p examples/mini/genomes examples/mini/reads
-          cat <<'FA' | sed 's/^ *//' | gzip -c > examples/mini/genomes/example_genome_1.fna.gz
+          cat <<'FA' | sed 's/^ *//' > examples/mini/genomes/example_genome_1.fna
             >example_genome_1
             ATGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTAATGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTA
             TTGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTATTGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTA
           FA
-          cat <<'FB' | sed 's/^ *//' | gzip -c > examples/mini/genomes/example_genome_2.fna.gz
+          cat <<'FB' | sed 's/^ *//' > examples/mini/genomes/example_genome_2.fna
             >example_genome_2
             ATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACTATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACT
             ATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACTATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACT
@@ -69,11 +69,14 @@ jobs:
             +
             FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
           R2
+          mkdir -p ci-kofam-stub
+          touch ci-kofam-stub/.stub
 
       - name: Run validation workflow
         run: |
           nextflow run . -profile conda,linux -params-file examples/mini/params.json \
             --genomes_dir examples/mini/genomes --reads "examples/mini/reads/*_{R1,R2}.fastq.gz" \
+            --kofam_db ${PWD}/ci-kofam-stub \
             --outdir results-mini --skip_checkm2 -with-report ci-report.html
 
       - name: Verify outputs

@@ -8,9 +8,10 @@ This directory documents how to prepare a small validation dataset. No files are
    ```
    mkdir -p examples/mini/genomes examples/mini/reads
    ```
-2. Fetch two GTDB reference genomes (FASTA) and place them under `examples/mini/genomes/`. Any small bacterial assemblies will work; for reproducibility we suggest grabbing:
-   - `GCF_000005845.2_ASM584v2_genomic.fna.gz`
-   - `GCF_000006945.2_ASM694v2_genomic.fna.gz`
+2. Fetch two GTDB reference genomes (FASTA) and place them under `examples/mini/genomes/`. Any small bacterial assemblies will work; for reproducibility we suggest:
+   - `GCF_000005845.2_ASM584v2_genomic.fna`
+   - `GCF_000006945.2_ASM694v2_genomic.fna`
+   (download the `*.fna.gz` from NCBI and decompress them if needed).
 
 3. Prepare paired-end reads by subsampling public data (e.g., with `seqtk sample`) into:
    - `examples/mini/reads/sampleA_R1.fastq.gz`

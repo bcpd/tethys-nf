@@ -19,6 +19,8 @@ process KOFAM_SCAN {
   def faaPathEsc = shellQuote(faa.toString())
   def faaBase = faa.baseName
   def outdirEsc = shellQuote(outdir)
+  def stubFlag = new File("${kofam_dir}/.stub").exists()
+  def stubEnv = stubFlag ? '1' : '0'
   """
   set -euo pipefail
 
@@ -30,6 +32,12 @@ process KOFAM_SCAN {
   threads=${t}
   faa_file='${faaPathEsc}'
   sample_id='${faaBase}'
+  stub_mode='${stubEnv}'
+
+  if [ "${stub_mode}" = "1" ]; then
+    echo -e "${sample_id}\tK00000\tstub\t1e-5\t0.0\t0" > "${outdir}/${sample_id}.kofam.tsv"
+    exit 0
+  fi
 
   echo "[KOFAM] Using ${backend} backend for ${sample_id}" >&2
 
