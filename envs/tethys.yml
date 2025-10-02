@@ -17,5 +17,5 @@ dependencies:
   - sylph>=0.7,<0.8
   - pip
   - pip:
-      - pyexeggutor>=0.5,<1
-      - kegg-pathway-profiler>=0.6,<1
+      - pyexeggutor==2025.2.19
+      - kegg-pathway-profiler==2025.1.12
