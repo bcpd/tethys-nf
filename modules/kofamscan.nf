@@ -12,15 +12,14 @@ process KOFAM_SCAN {
 
   script:
   def outdir = 'build/kofam'
-  def t = task.cpus
+  def threads = task.cpus
   def backend = (params.annotation_backend ?: 'pykofamsearch')
   def shellQuote = { str -> str.replace("'", "'\"'\"'") }
   def kofamDirEsc = shellQuote(kofam_dir.toString())
   def faaPathEsc = shellQuote(faa.toString())
-  def faaBase = faa.baseName
+  def sampleId = faa.baseName
   def outdirEsc = shellQuote(outdir)
-  def stubFlag = new File("${kofam_dir}/.stub").exists()
-  def stubEnv = stubFlag ? '1' : '0'
+  def stubMode = new File("${kofam_dir}/.stub").exists() ? '1' : '0'
   """
   set -euo pipefail
 
@@ -29,13 +28,13 @@ process KOFAM_SCAN {
 
   kofam_dir='${kofamDirEsc}'
   backend='${backend}'
-  threads=${t}
+  threads=${threads}
   faa_file='${faaPathEsc}'
-  sample_id='${faaBase}'
-  stub_mode='${stubEnv}'
+  sample_id='${sampleId}'
+  stub_mode='${stubMode}'
 
   if [ "${stub_mode}" = "1" ]; then
-    echo -e "${sample_id}\tK00000\tstub\t1e-5\t0.0\t0" > "${outdir}/${sample_id}.kofam.tsv"
+    printf "id_gene\tid_feature\n%s\tK00000\n" "${sample_id}" > "${outdir}/${sample_id}.kofam.tsv"
     exit 0
   fi
 
@@ -47,7 +46,7 @@ process KOFAM_SCAN {
     elif python -c "import pykofamsearch" >/dev/null 2>&1; then
       PKS=(python -m pykofamsearch)
     else
-      echo "[KOFAM] PyKOfamSearch executable not found in PATH and module import failed" >&2
+      echo "[KOFAM] PyKOfamSearch executable not found" >&2
       exit 1
     fi
 
@@ -65,7 +64,6 @@ process KOFAM_SCAN {
       exit ${rc}
     fi
   else
-    echo "[KOFAM] Running KOfamScan for ${sample_id}" >&2
     set +e
     exec_annotation \
       --profile "${kofam_dir}/profiles" \
