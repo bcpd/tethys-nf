@@ -39,14 +39,14 @@ workflow build_phase {
   def genomeGlob = "${params.genomes_dir}/**/*.{fna,fa,fasta}"
 
   // Cluster all genomes in a single job
-  CLUSTER_SKANI(Channel.fromPath(genomeGlob).collect())
+  CLUSTER_SKANI(nextflow.Channel.fromPath(genomeGlob).collect())
   def clusters = CLUSTER_SKANI.out.clusters
 
   // Call genes per-genome
-  PRODIGAL_PYRO(Channel.fromPath(genomeGlob))
+  PRODIGAL_PYRO(nextflow.Channel.fromPath(genomeGlob))
   def faa = PRODIGAL_PYRO.out.faa
 
-  def kofamDb = VERIFY_KOFAM_DB(Channel.value(params.kofam_db)).out.db_dir
+  def kofamDb = VERIFY_KOFAM_DB(nextflow.Channel.value(params.kofam_db)).out.db_dir
 
   // Annotate proteins per-genome (scatter for parallelism)
   KOFAM_SCAN(faa.cross(kofamDb))
@@ -57,7 +57,7 @@ workflow build_phase {
   def annotations = CONCAT_KOFAM.out.annotations
 
   // Build manifest from raw genome paths and clusters
-  BUILD_MANIFEST(Channel.fromPath(genomeGlob).collect(), clusters)
+  BUILD_MANIFEST(nextflow.Channel.fromPath(genomeGlob).collect(), clusters)
   def manifest = BUILD_MANIFEST.out.manifest
 
   TETHYS_PREPROCESS(manifest, annotations)
@@ -67,7 +67,7 @@ workflow build_phase {
 
   // Optional QA on all proteins
   if( !params.skip_checkm2 ) {
-    def checkm2Db = VERIFY_CHECKM2_DB(Channel.value(params.checkm2_db)).out.db_dir
+    def checkm2Db = VERIFY_CHECKM2_DB(nextflow.Channel.value(params.checkm2_db)).out.db_dir
     def checkm2Input = faa.collect().combine(checkm2Db)
     CHECKM2(checkm2Input)
   } else {
@@ -83,7 +83,7 @@ workflow profile_phase {
   take:
     index_dir
   main:
-    READS = Channel.fromFilePairs(params.reads, checkIfExists: true)
+    READS = nextflow.Channel.fromFilePairs(params.reads, checkIfExists: true)
     PROFILE_TAX( READS, index_dir )
     PROFILE_FUNC( READS, index_dir )
     barrier = PROFILE_TAX.out.done.mix(PROFILE_FUNC.out.done).collect()
