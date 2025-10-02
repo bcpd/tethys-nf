@@ -4,7 +4,7 @@ A Nextflow DSL2 pipeline for scalable taxonomic and functional profiling using T
 
 ## Quickstart
 
-- Build DB + profile + merge (all):
+- Build database + profile + merge (all):
 
 ```
 nextflow run . -profile conda,linux -resume \
@@ -33,7 +33,7 @@ nextflow run . -profile conda,linux -resume \
 - KOfamScan DB: set `--kofam_db` or conf/local.config; required for KO annotation.
 - Annotation backend: PyKOfamSearch runs by default for faster HMM scoring. Pass `--annotation_backend kofamscan` to use the legacy KOfamScan CLI instead.
 - CheckM2 DB: set `--checkm2_db` or `$CHECKM2DB`. If missing, the pipeline runs `checkm2 database --download --path <dir>` to fetch it.
-- Sylph "DB": built into the index at `index/database/genomes.syldb`.
+- Sylph database: built into the index at `index/database/genomes.syldb`.
 
 ## Outputs
 
