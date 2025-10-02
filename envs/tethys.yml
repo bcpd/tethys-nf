@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.11.*
+  - python=3.10.*
   - pandas>=2.1,<2.2
   - numpy>=1.26,<1.27
   - pyarrow>=14,<15

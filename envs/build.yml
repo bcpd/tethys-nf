@@ -3,13 +3,12 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.11.*
+  - python=3.10.*
   - pyrodigal=3.6.3
   - skani=0.2.1
   - hmmer=3.4
   - pyhmmer=0.10.12
   - kofamscan=1.3.0
-  - checkm2=1.0.1
   - pandas=2.1.4
   - numpy=1.26.4
   - networkx=3.2.1
