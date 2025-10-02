@@ -1,0 +1,7 @@
+{
+  "mode": "all",
+  "genomes_dir": "examples/mini/genomes",
+  "reads": "examples/mini/reads/*_{R1,R2}.fastq.gz",
+  "outdir": "results-mini",
+  "skip_checkm2": true
+}

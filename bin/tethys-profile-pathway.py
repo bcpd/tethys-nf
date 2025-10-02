@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import sys,os, argparse, warnings, subprocess, glob, shutil
+import sys,os, argparse, warnings, subprocess, glob, shutil, logging
+from pathlib import Path
 from collections import defaultdict
 import pandas as pd
 from tqdm import tqdm
@@ -53,6 +54,8 @@ def main(args=None):
 
     parser_utility = parser.add_argument_group('Utility arguments')
     parser_utility.add_argument("-p","--n_jobs", type=int, default=1)
+    parser_utility.add_argument("--log_level", default="INFO", choices=["CRITICAL","ERROR","WARNING","INFO","DEBUG"], help="Logging verbosity")
+    parser_utility.add_argument("--log_file", help="Optional file to append detailed logs")
 
     parser_salmon_quant = parser.add_argument_group('salmon quant arguments')
     parser_salmon_quant.add_argument("--salmon_executable", type=str)
@@ -73,7 +76,36 @@ def main(args=None):
     opts.script_filename = script_filename
 
     logger = build_logger("tethys profile-pathway")
+    log_level = getattr(logging, opts.log_level.upper(), logging.INFO)
+    logger.setLevel(log_level)
+    if opts.log_file:
+        fh = logging.FileHandler(opts.log_file)
+        fh.setLevel(log_level)
+        logger.addHandler(fh)
     logger.info(f"Command: {sys.argv}")
+
+    def _require_file(path_str: str, label: str) -> None:
+        if not os.path.exists(path_str):
+            parser.error(f"{label} not found: {path_str}")
+        if path_str.endswith('.gz'):
+            with open(path_str, 'rb') as fh:
+                magic = fh.read(2)
+            if magic and magic != b"\x1f\x8b":
+                parser.error(f"{label} does not appear to be gzipped despite .gz extension: {path_str}")
+
+    if bool(opts.forward_reads) ^ bool(opts.reverse_reads):
+        parser.error("Forward and reverse reads must be provided together")
+
+    if opts.forward_reads and opts.reverse_reads:
+        _require_file(opts.forward_reads, "Forward reads")
+        _require_file(opts.reverse_reads, "Reverse reads")
+        left_tag = Path(opts.forward_reads).name
+        right_tag = Path(opts.reverse_reads).name
+        if left_tag == right_tag:
+            parser.error("Forward and reverse reads point to the same file")
+        shared_prefix = os.path.commonprefix([left_tag.replace('R1',''), right_tag.replace('R2','')])
+        if len(shared_prefix.strip()) < 2:
+            logger.warning("Forward/Reverse filenames share little overlap; double-check pairing")
 
     if opts.n_jobs == -1:
         from multiprocessing import cpu_count 

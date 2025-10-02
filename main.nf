@@ -10,6 +10,7 @@ include { BUILD_MANIFEST       } from './modules/build_manifest.nf'
 include { TETHYS_PREPROCESS } from './modules/tethys_preprocess.nf'
 include { TETHYS_INDEX      } from './modules/tethys_index.nf'
 include { VERIFY_KOFAM_DB       } from './modules/verify_kofam_db.nf'
+include { VERIFY_CHECKM2_DB     } from './modules/verify_checkm2_db.nf'
 include { CHECKM2              } from './modules/checkm2.nf'
 include { PROFILE_TAX          } from './modules/profile_tax.nf'
 include { PROFILE_FUNC         } from './modules/profile_func.nf'
@@ -66,7 +67,9 @@ workflow build_phase {
 
   // Optional QA on all proteins
   if( !params.skip_checkm2 ) {
-    CHECKM2(faa.collect())
+    def checkm2Db = VERIFY_CHECKM2_DB(Channel.value(params.checkm2_db)).out.db_dir
+    def checkm2Input = faa.collect().combine(checkm2Db)
+    CHECKM2(checkm2Input)
   } else {
     log.warn "[build_phase] Skipping CHECKM2 as requested (params.skip_checkm2=true)"
   }

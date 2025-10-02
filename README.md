@@ -28,12 +28,48 @@ nextflow run . -profile conda,linux -resume \
 
 > On macOS hosts, swap `linux` for `mac` in the profile string.
 
+## Environment Setup
+
+- Recreate the per-process Conda envs (micromamba recommended):
+
+```
+micromamba install -f envs/build.yml -y
+micromamba install -f envs/tethys.yml -y
+micromamba install -f envs/checkm2.yml -y
+```
+
+- Lock environments for reproducibility (requires `conda-lock` ≥2.5):
+
+```
+conda-lock lock --kind micromamba \
+  --file envs/build.yml --file envs/tethys.yml --file envs/checkm2.yml
+```
+
+  Commit the generated `.conda-lock/*.yml` files so CI and collaborators share identical dependency stacks.
+
 ## Databases
 
 - KOfamScan DB: set `--kofam_db` or conf/local.config; required for KO annotation.
 - Annotation backend: PyKOfamSearch runs by default for faster HMM scoring. Pass `--annotation_backend kofamscan` to use the legacy KOfamScan CLI instead.
 - CheckM2 DB: set `--checkm2_db` or `$CHECKM2DB`. If missing, the pipeline runs `checkm2 database --download --path <dir>` to fetch it.
 - Sylph database: built into the index at `index/database/genomes.syldb`.
+
+## Example Dataset
+
+- A minimal example dataset is described in `examples/README.md`. Download the fixture genomes and reads into `examples/mini/` before running the commands below.
+- Run the workflow end-to-end on the example data:
+
+```
+nextflow run . -profile conda,linux -resume \
+  --mode all \
+  --genomes_dir examples/mini/genomes \
+  --reads "examples/mini/reads/*_{R1,R2}.fastq.gz" \
+  --outdir ./results-mini \
+  --skip_checkm2 \
+  -with-report examples/mini/report.html
+```
+
+- Use the same dataset for CI or regression tests: `nextflow run . -params-file examples/mini/params.json`.
 
 ## Outputs
 
@@ -57,3 +93,7 @@ nextflow run . -profile conda,linux -resume \
 ## Config
 
 - See `conf/local.config.example` for central DB paths; copy to `conf/local.config` and adjust per machine.
+- Troubleshooting highlights:
+  - **Database provisioning** – Run `python bin/tethys-download-kofam-db.py` and `checkm2 database --download --path <dir>` ahead of time on shared clusters to avoid repeated downloads inside jobs.
+  - **External tools** – `tethys-index`/`profile-*` auto-discover `salmon`, `samtools`, and `sylph` on `PATH`. Override with `--salmon_executable`, `--samtools_executable`, or `--sylph_executable` when needed.
+  - **Paired-end validation** – The profilers now error early if R1/R2 inputs are missing or mismatched; double-check glob patterns and filenames before launching large runs.

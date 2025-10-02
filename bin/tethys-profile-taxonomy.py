@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import sys,os, argparse, warnings, subprocess, glob, shutil
+import sys,os, argparse, warnings, subprocess, glob, shutil, logging
 from collections import defaultdict
 import pandas as pd
 import xarray as xr
 from tqdm import tqdm
+from pathlib import Path
 
 __program__ = os.path.split(sys.argv[0])[-1]
 
@@ -46,6 +47,8 @@ def main(args=None):
 
     parser_utility = parser.add_argument_group('Utility arguments')
     parser_utility.add_argument("-p","--n_jobs", type=int, default=1,  help = "Number of threads to use.  Use -1 for all available. [Default: 1]")
+    parser_utility.add_argument("--log_level", default="INFO", choices=["CRITICAL","ERROR","WARNING","INFO","DEBUG"], help="Logging verbosity")
+    parser_utility.add_argument("--log_file", help="Optional log destination")
 
     parser_sylph_sketch = parser.add_argument_group('Sylph reads sketcher arguments (Fastq)')
     parser_sylph_sketch.add_argument("--sylph_executable", type=str, help="Sylph executable [Default: $PATH]")
@@ -65,7 +68,41 @@ def main(args=None):
     opts.script_filename = script_filename
 
     logger = build_logger("tethys profile-taxonomy")
+    log_level = getattr(logging, opts.log_level.upper(), logging.INFO)
+    logger.setLevel(log_level)
+    if opts.log_file:
+        fh = logging.FileHandler(opts.log_file)
+        fh.setLevel(log_level)
+        logger.addHandler(fh)
     logger.info(f"Command: {sys.argv}")
+
+    def _require_file(path_str: str, label: str) -> None:
+        if not path_str:
+            return
+        if not os.path.exists(path_str):
+            parser.error(f"{label} not found: {path_str}")
+        if path_str.endswith('.gz'):
+            with open(path_str, 'rb') as fh:
+                magic = fh.read(2)
+            if magic and magic != b"\x1f\x8b":
+                parser.error(f"{label} does not appear to be gzipped despite .gz extension: {path_str}")
+
+    if bool(opts.forward_reads) ^ bool(opts.reverse_reads):
+        parser.error("Provide both forward and reverse reads, or a precomputed sketch")
+
+    if opts.forward_reads and opts.reverse_reads:
+        _require_file(opts.forward_reads, "Forward reads")
+        _require_file(opts.reverse_reads, "Reverse reads")
+        left_tag = Path(opts.forward_reads).name
+        right_tag = Path(opts.reverse_reads).name
+        if left_tag == right_tag:
+            parser.error("Forward and reverse reads reference the same file")
+        shared_prefix = os.path.commonprefix([left_tag.replace('R1',''), right_tag.replace('R2','')])
+        if len(shared_prefix.strip()) < 2:
+            logger.warning("Forward/Reverse filenames share little overlap; confirm pairing")
+
+    if opts.reads_sketch:
+        _require_file(opts.reads_sketch, "Reads sketch")
 
     if opts.n_jobs == -1:
         from multiprocessing import cpu_count 
