@@ -1,6 +1,4 @@
-nextflow.enable.dsl=2
-
-process KOFAM_SCAN {
+process KOFAM_SCAN_PROCESS {
   tag "kofam"
   label 'KOFAM_SCAN'
   conda "envs/build.yml"
@@ -82,4 +80,14 @@ process KOFAM_SCAN {
     fi
   fi
   """
+}
+
+workflow KOFAM_SCAN {
+  take:
+    faa
+    kofam_dir
+  main:
+    KOFAM_SCAN_PROCESS(faa, kofam_dir)
+  emit:
+    kofam = KOFAM_SCAN_PROCESS.out.kofam
 }

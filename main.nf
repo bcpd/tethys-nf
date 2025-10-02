@@ -49,7 +49,7 @@ workflow build_phase {
   def kofamDb = VERIFY_KOFAM_DB(nextflow.Channel.value(params.kofam_db)).out.db_dir
 
   // Annotate proteins per-genome (scatter for parallelism)
-  KOFAM_SCAN(faa.cross(kofamDb))
+  KOFAM_SCAN(faa, kofamDb)
   def kofam = KOFAM_SCAN.out.kofam
 
   // Gather KOfam outputs for concatenation
