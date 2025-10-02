@@ -3,10 +3,11 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.11.*
+  - python=3.10.*
   - pandas=2.1.4
   - numpy=1.26.4
   - diamond>=2.1,<2.2
+  - pip
   - pip
   - pip:
       - checkm2==1.0.1
