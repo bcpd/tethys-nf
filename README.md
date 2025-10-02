@@ -1,6 +1,6 @@
 # tethys-nf
 
-tethys-nf is a Nextflow DSL2 workflow for building a gene catalog from assembled genomes and profiling short-read metagenomes. It clusters input genomes (Skani), calls genes (Pyrodigal), assigns KO annotations (PyKOfamSearch or KOfamScan), optionally runs CheckM2 quality assessment, generates the *tethys* index, and finally performs taxonomic and functional profiling, emitting merged tables and NetCDF summaries.
+Tethys-nf is a Nextflow DSL2 workflow for building a gene catalog from assembled genomes and profiling short-read metagenomes. It clusters input genomes (Skani), calls genes (Pyrodigal), assigns KO annotations (PyKOfamSearch or KOfamScan), optionally runs CheckM2 quality assessment, generates the *tethys* index, and finally performs taxonomic and functional profiling, emitting merged tables and NetCDF summaries.
 
 ## Quickstart
 
