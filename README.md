@@ -56,7 +56,7 @@ conda-lock lock --kind micromamba \
 
 ## Example Dataset
 
-- A minimal example dataset is described in `examples/README.md`. Download the fixture genomes and reads into `examples/mini/` before running the commands below.
+- Instructions for preparing a minimal validation dataset live in `examples/README.md`. Download or subsample the genomes and reads into `examples/mini/` before running the commands below.
 - Run the workflow end-to-end on the example data:
 
 ```

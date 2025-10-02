@@ -1,6 +1,6 @@
-# Example Fixtures
+# Example Dataset
 
-The repository ships instructions for a tiny validation dataset. All files are lightweight (≲1 MB) so they can be downloaded on-demand without bloating the repository.
+This directory documents how to prepare a small validation dataset. No files are committed here by default; download or subsample the assets described below (each is ≲1 MB) before running the workflow.
 
 ## Download
 
