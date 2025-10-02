@@ -252,7 +252,7 @@ def main(args=None):
             sylph_sketch_options=opts.sylph_sketch_options,
         )
     else:
-        logger.warning("--genomes not provided so Leviathan is not building Sylph sketches")
+        logger.warning("--genomes not provided so the catalog builder is not building Sylph sketches")
 
     md5hash_filepath = os.path.join(opts.index_directory, "md5hashes.json")
     logger.info(f"Calculating md5 hashes: {md5hash_filepath}")

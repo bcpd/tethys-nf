@@ -29,7 +29,7 @@ def main(args=None):
     description = """
     Running: {} v{} via Python v{} | {}""".format(__program__, sys.version.split(" ")[0], python_executable, script_filename)
     usage = f"{__program__} -i/--input path/to/input.tsv -a path/to/annotations.tsv -o/--output_directory path/to/output_directory/"
-    epilog = "Leviathan"
+    epilog = "Tethys"
 
     parser = argparse.ArgumentParser(description=description, usage=usage, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-i","--input", type=str, default="stdin", help = "path/to/input.tsv[.gz] [id_genome, path/to/assembly.fasta, path/to/cds.fasta. [Optional: id_genome_cluster]] (No header, Tab delimited)")

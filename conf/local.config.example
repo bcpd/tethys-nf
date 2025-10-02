@@ -2,7 +2,7 @@
 params.kofam_db   = "/data/db/kofam"     // If unset, pipeline will auto-download to ${projectDir}/databases/kofam
 params.checkm2_db = "/data/db/checkm2"  // If unset, pipeline will auto-download to ${projectDir}/databases/checkm2
 params.pathway_db = null                  // optional
-params.index_dir  = null                  // optional prebuilt Leviathan index
+params.index_dir  = null                  // optional prebuilt Tethys index
 params.skip_checkm2 = false               // set true to skip CHECKM2 step
 params.kofam_cpus  = 2                    // optional: CPUs per KOFAM task (increase/decrease to tune parallelism)
 // params.annotation_backend = 'kofamscan'   // optional: set to 'kofamscan' to use legacy CLI instead of PyKOfamSearch

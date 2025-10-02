@@ -40,7 +40,7 @@ def main(args=None):
     description = """
     Running: {} v{} via Python v{} | {}""".format(__program__, sys.version.split(" ")[0], python_executable, script_filename)
     usage = f"{__program__} -1 R1.fq.gz -2 R2.fq.gz -n sample -o project_dir -d index_dir"
-    epilog = "Leviathan"
+    epilog = "Tethys"
 
     parser = argparse.ArgumentParser(description=description, usage=usage, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
 
