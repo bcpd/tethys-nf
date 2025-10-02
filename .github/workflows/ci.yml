@@ -24,7 +24,7 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: '1.5.6'
+          micromamba-version: '1.5.8-0'
           generate-run-shell: true
 
       - name: Cache Conda envs
