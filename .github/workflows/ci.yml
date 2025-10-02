@@ -37,7 +37,6 @@ jobs:
           mkdir -p .conda/envs
           micromamba create -p .conda/envs/tethys-build -f envs/build.yml -y
           micromamba create -p .conda/envs/tethys-profile -f envs/tethys.yml -y
-          micromamba create -p .conda/envs/tethys-checkm2 -f envs/checkm2.yml -y
 
       - name: Install Nextflow
         run: |
