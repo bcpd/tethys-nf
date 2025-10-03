@@ -18,7 +18,6 @@ process VERIFY_CHECKM2_DB {
   """
   set -euo pipefail
 
-  db_dir='${dbDirEsc}'
   dmnd_glob='${dbDirEsc}/CheckM2_database/*.dmnd'
 
   mkdir -p '${dbDirEsc}'
@@ -44,5 +43,5 @@ process VERIFY_CHECKM2_DB {
   fi
 
   echo "[VERIFY_CHECKM2_DB] Using database directory: ${dbDir}" >&2
-  """
+  """.stripIndent()
 }

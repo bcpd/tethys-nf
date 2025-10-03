@@ -19,20 +19,18 @@ process KOFAM_SCAN {
   def faaPathEsc = shellQuote(faa.toString())
   def sampleId = faa.baseName
   def outdirEsc = shellQuote(outdir)
-  def stubMode = new File("${kofam_dir}/.stub").exists()
+  def stubFlag = new File("${kofam_dir}/.stub").exists()
 
-  if( stubMode ) {
+  if( stubFlag ) {
     return """
     set -euo pipefail
 
-    outdir='${outdirEsc}'
-    mkdir -p "${outdir}"
-
-    printf "id_gene\tid_feature\n%s\tK00000\n" "${sampleId}" > "${outdir}/${sampleId}.kofam.tsv"
-    """
+    mkdir -p '${outdirEsc}'
+    printf "id_gene\tid_feature\n%s\tK00000\n" '${sampleId}' > '${outdirEsc}/${sampleId}.kofam.tsv'
+    """.stripIndent()
   }
 
-  def pykofam = """
+  String runPyKofam = """
     if command -v pykofamsearch >/dev/null 2>&1; then
       pykofamsearch \
         -i '${faaPathEsc}' \
@@ -51,9 +49,9 @@ process KOFAM_SCAN {
       echo "[KOFAM] PyKOfamSearch executable not found" >&2
       exit 1
     fi
-  """
+  """.stripIndent()
 
-  def execAnnotation = """
+  String runExecAnnotation = """
     exec_annotation \
       --profile '${kofamDirEsc}/profiles' \
       --ko-list '${kofamDirEsc}/ko_list' \
@@ -61,16 +59,15 @@ process KOFAM_SCAN {
       -f detail-tsv \
       -o '${outdirEsc}/${sampleId}.kofam.tsv' \
       '${faaPathEsc}'
-  """
+  """.stripIndent()
 
   return """
   set -euo pipefail
 
-  outdir='${outdirEsc}'
-  mkdir -p "${outdir}"
+  mkdir -p '${outdirEsc}'
 
   echo "[KOFAM] Using ${backend} backend for ${sampleId}" >&2
 
-  ${backend == 'pykofamsearch' ? pykofam.stripIndent() : execAnnotation.stripIndent()}
-  """
+  ${backend == 'pykofamsearch' ? runPyKofam : runExecAnnotation}
+  """.stripIndent()
 }

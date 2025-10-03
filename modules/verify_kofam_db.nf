@@ -13,7 +13,7 @@ process VERIFY_KOFAM_DB {
   def shellQuote = { str -> str.replace("'", "'\"'\"'") }
   def dbDir = (kofam_param ?: "${projectDir}/databases/kofam").toString()
   def dbDirEsc = shellQuote(dbDir)
-  def downloaderPath = shellQuote("${projectDir}/bin/tethys-download-kofam-db.py")
+  def downloaderEsc = shellQuote("${projectDir}/bin/tethys-download-kofam-db.py")
   def stubFlag = new File("${dbDir}/.stub").exists()
   task.ext.verified_dir = dbDir
 
@@ -21,17 +21,13 @@ process VERIFY_KOFAM_DB {
     return """
     set -euo pipefail
 
-    db_dir='${dbDirEsc}'
     mkdir -p '${dbDirEsc}/profiles'
     touch '${dbDirEsc}/ko_list'
-    """
+    """.stripIndent()
   }
 
   """
   set -euo pipefail
-
-  db_dir='${dbDirEsc}'
-  downloader='${downloaderPath}'
 
   mkdir -p '${dbDirEsc}'
 
@@ -74,7 +70,7 @@ PY
 
   if [ "\$need_db" -eq 1 ]; then
     echo "[VERIFY_KOFAM_DB] Database missing or invalid in ${dbDir}. Attempting download/repair…" >&2
-    python '${downloaderPath}' --outdir '${dbDirEsc}' || {
+    python '${downloaderEsc}' --outdir '${dbDirEsc}' || {
       echo "[VERIFY_KOFAM_DB] Auto-download failed. Please download KOfam DB manually into ${dbDir}." >&2
       exit 1
     }
@@ -99,11 +95,11 @@ PY
       echo "[VERIFY_KOFAM_DB] Detected invalid HMM profile(s) via hmmstat. Refreshing KOfam DB…" >&2
       rm -rf '${dbDirEsc}/profiles' || true
       rm -f '${dbDirEsc}/profiles.tar.gz' || true
-      python '${downloaderPath}' --outdir '${dbDirEsc}' || {
+      python '${downloaderEsc}' --outdir '${dbDirEsc}' || {
         echo "[VERIFY_KOFAM_DB] Auto-download/repair failed. Please (re)download KOfam DB manually into ${dbDir}." >&2
         exit 1
       }
     fi
   fi
-  """
+  """.stripIndent()
 }
