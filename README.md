@@ -28,6 +28,8 @@ nextflow run . -profile conda,linux -resume \
 
 > On macOS hosts, swap `linux` for `mac` in the profile string.
 
+> Requires Nextflow `25.04.7` or newer (the pipeline enables DSL2 modules).
+
 ## Environment Setup
 
 - Recreate the per-process Conda envs (micromamba recommended):
