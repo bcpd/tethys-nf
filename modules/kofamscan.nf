@@ -1,5 +1,3 @@
-nextflow.enable.dsl=2
-
 process KOFAM_SCAN {
   tag "kofam"
   label 'KOFAM_SCAN'
