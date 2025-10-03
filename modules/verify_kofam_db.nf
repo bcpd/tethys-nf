@@ -40,7 +40,7 @@ process VERIFY_KOFAM_DB {
     count=0
     while IFS= read -r -d '' hmm_file; do
       [ -z "${hmm_file}" ] && continue
-      count=$((count+1))
+      count=\$((count+1))
       if ! head -c 12 "${hmm_file}" | grep -q "HMMER3"; then
         sample_bad=1
         break
@@ -60,7 +60,7 @@ PY
       fi
     done < <(find "${db_dir}/profiles" -type f -name "*.hmm" -print0 2>/dev/null || true)
 
-    hmm_n=$(find "${db_dir}/profiles" -type f -name "*.hmm" 2>/dev/null | wc -l | tr -d '[:space:]')
+    hmm_n=\$(find "${db_dir}/profiles" -type f -name "*.hmm" 2>/dev/null | wc -l | tr -d '[:space:]')
     if [ -z "${hmm_n}" ]; then
       hmm_n=0
     fi
@@ -86,7 +86,7 @@ PY
         bad=1
         break
       fi
-      count=$((count+1))
+      count=\$((count+1))
       if [ "${count}" -ge 500 ]; then
         break
       fi
