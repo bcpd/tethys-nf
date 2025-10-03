@@ -29,20 +29,18 @@ process CHECKM2 {
   def indirEsc = shellQuote(indir)
   def outdirEsc = shellQuote(outdir)
   def threads = task.cpus
-  def dbDirEsc = shellQuote(db_dir.toString())
   """
   set -euo pipefail
-  db_dir='${dbDirEsc}'
   mkdir -p '${indirEsc}' '${outdirEsc}'
 
   ${linkCmds}
 
-  dmnd_file=${'$'}(ls '${dmndGlobEsc}' | head -n 1)
-  if [ -z "${'$'}{dmnd_file}" ]; then
-    echo "[CHECKM2] Unable to locate DIAMOND database under '${dbDirEsc}'" >&2
+  dmnd_file=\$(ls '${dmndGlobEsc}' | head -n 1)
+  if [ -z "\$dmnd_file" ]; then
+    echo "[CHECKM2] Unable to locate DIAMOND database under '${shellQuote(db_dir.toString())}'" >&2
     exit 1
   fi
 
-  checkm2 predict -i '${indirEsc}' -o '${outdirEsc}' --threads ${threads} --genes -x faa --database_path "${'$'}{dmnd_file}"
+  checkm2 predict -i '${indirEsc}' -o '${outdirEsc}' --threads ${threads} --genes -x faa --database_path "\$dmnd_file"
   """
 }
