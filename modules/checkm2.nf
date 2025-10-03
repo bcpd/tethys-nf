@@ -38,11 +38,11 @@ process CHECKM2 {
   ${linkCmds}
 
   dmnd_file=${'$'}(ls '${dmndGlobEsc}' | head -n 1)
-  if [ -z "\${dmnd_file}" ]; then
+  if [ -z "${'$'}{dmnd_file}" ]; then
     echo "[CHECKM2] Unable to locate DIAMOND database under '${dbDirEsc}'" >&2
     exit 1
   fi
 
-  checkm2 predict -i '${indirEsc}' -o '${outdirEsc}' --threads ${threads} --genes -x faa --database_path "\${dmnd_file}"
+  checkm2 predict -i '${indirEsc}' -o '${outdirEsc}' --threads ${threads} --genes -x faa --database_path "${'$'}{dmnd_file}"
   """
 }
