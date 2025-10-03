@@ -21,13 +21,13 @@ workflow {
     build_phase()
   }
   else if( params.mode == 'profile' ) {
-    def pr = profile_phase(nextflow.Channel.value(params.index_dir))
-    merge_phase(pr.barrier)
+    profile_phase(nextflow.Channel.value(params.index_dir))
+    merge_phase(profile_phase.out.barrier)
   }
   else if( params.mode == 'all' ) {
-    def bp = build_phase()
-    def pr = profile_phase(bp.index_dir)
-    merge_phase(pr.barrier)
+    build_phase()
+    profile_phase(build_phase.out.index_dir)
+    merge_phase(profile_phase.out.barrier)
   }
   else if( params.mode == 'merge' ) {
     merge_phase(nextflow.Channel.value('ok'))
@@ -46,7 +46,8 @@ workflow build_phase {
   PRODIGAL_PYRO(nextflow.Channel.fromPath(genomeGlob))
   def faa = PRODIGAL_PYRO.out.faa
 
-  def kofamDb = VERIFY_KOFAM_DB(nextflow.Channel.value(params.kofam_db)).out.db_dir
+  VERIFY_KOFAM_DB(nextflow.Channel.value(params.kofam_db))
+  def kofamDb = VERIFY_KOFAM_DB.out.db_dir
 
   // Annotate proteins per-genome (scatter for parallelism)
   def kofamInput = faa.cross(kofamDb)
@@ -68,7 +69,8 @@ workflow build_phase {
 
   // Optional QA on all proteins
   if( !params.skip_checkm2 ) {
-    def checkm2Db = VERIFY_CHECKM2_DB(nextflow.Channel.value(params.checkm2_db)).out.db_dir
+    VERIFY_CHECKM2_DB(nextflow.Channel.value(params.checkm2_db))
+    def checkm2Db = VERIFY_CHECKM2_DB.out.db_dir
     def checkm2Input = faa.collect().combine(checkm2Db)
     CHECKM2(checkm2Input)
   } else {
