@@ -21,7 +21,7 @@ workflow {
     build_phase()
   }
   else if( params.mode == 'profile' ) {
-    def pr = profile_phase(Channel.value(params.index_dir))
+    def pr = profile_phase(nextflow.Channel.value(params.index_dir))
     merge_phase(pr.barrier)
   }
   else if( params.mode == 'all' ) {
@@ -30,7 +30,7 @@ workflow {
     merge_phase(pr.barrier)
   }
   else if( params.mode == 'merge' ) {
-    merge_phase(Channel.value('ok'))
+    merge_phase(nextflow.Channel.value('ok'))
   }
 }
 
@@ -49,7 +49,8 @@ workflow build_phase {
   def kofamDb = VERIFY_KOFAM_DB(nextflow.Channel.value(params.kofam_db)).out.db_dir
 
   // Annotate proteins per-genome (scatter for parallelism)
-  KOFAM_SCAN(faa, kofamDb)
+  def kofamInput = faa.cross(kofamDb)
+  KOFAM_SCAN(kofamInput)
   def kofam = KOFAM_SCAN.out.kofam
 
   // Gather KOfam outputs for concatenation
