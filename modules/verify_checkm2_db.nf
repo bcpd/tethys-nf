@@ -27,7 +27,7 @@ process VERIFY_CHECKM2_DB {
     max_tries=5
     until compgen -G "\$dmnd_glob" > /dev/null; do
       tries=\$((tries+1))
-      echo "[VERIFY_CHECKM2_DB] Download attempt \$tries/\$max_tries…" >&2
+      echo "[VERIFY_CHECKM2_DB] Download attempt \$tries/\$max_tries..." >&2
       checkm2 database --download --path '${dbDirEsc}' || true
       if [ "\$tries" -ge "\$max_tries" ]; then
         echo "[VERIFY_CHECKM2_DB] Failed to provision CheckM2 database in ${dbDir}." >&2

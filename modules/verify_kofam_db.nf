@@ -69,7 +69,7 @@ PY
   fi
 
   if [ "\$need_db" -eq 1 ]; then
-    echo "[VERIFY_KOFAM_DB] Database missing or invalid in ${dbDir}. Attempting download/repair…" >&2
+    echo "[VERIFY_KOFAM_DB] Database missing or invalid in ${dbDir}. Attempting download/repair..." >&2
     python '${downloaderEsc}' --outdir '${dbDirEsc}' || {
       echo "[VERIFY_KOFAM_DB] Auto-download failed. Please download KOfam DB manually into ${dbDir}." >&2
       exit 1
@@ -92,7 +92,7 @@ PY
     done < <(find '${dbDirEsc}/profiles' -type f -name "*.hmm" -print0 2>/dev/null || true)
 
     if [ "\$bad" -eq 1 ]; then
-      echo "[VERIFY_KOFAM_DB] Detected invalid HMM profile(s) via hmmstat. Refreshing KOfam DB…" >&2
+      echo "[VERIFY_KOFAM_DB] Detected invalid HMM profile(s) via hmmstat. Refreshing KOfam DB..." >&2
       rm -rf '${dbDirEsc}/profiles' || true
       rm -f '${dbDirEsc}/profiles.tar.gz' || true
       python '${downloaderEsc}' --outdir '${dbDirEsc}' || {
