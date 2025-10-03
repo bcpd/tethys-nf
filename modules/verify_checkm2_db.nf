@@ -26,7 +26,7 @@ process VERIFY_CHECKM2_DB {
     tries=0
     max_tries=5
     until compgen -G "\${dmnd_glob}" > /dev/null; do
-      tries=\$((tries+1))
+      tries=${'$'}((tries+1))
       echo "[VERIFY_CHECKM2_DB] Download attempt \${tries}/\${max_tries}…" >&2
       checkm2 database --download --path "\${db_dir}" || true
       if [ "\${tries}" -ge "\${max_tries}" ]; then

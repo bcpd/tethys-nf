@@ -37,7 +37,7 @@ process CHECKM2 {
 
   ${linkCmds}
 
-  dmnd_file=\$(ls '${dmndGlobEsc}' | head -n 1)
+  dmnd_file=${'$'}(ls '${dmndGlobEsc}' | head -n 1)
   if [ -z "\${dmnd_file}" ]; then
     echo "[CHECKM2] Unable to locate DIAMOND database under '${dbDirEsc}'" >&2
     exit 1
