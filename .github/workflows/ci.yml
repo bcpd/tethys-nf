@@ -24,13 +24,9 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: '1.5.8-0'
-
-      - name: Cache Conda envs
-        uses: actions/cache@v3
-        with:
-          path: .conda
-          key: ${{ runner.os }}-conda-${{ hashFiles('envs/*.yml') }}
+          micromamba-version: 'latest'
+          cache-environment: false
+          cache-downloads: false
 
       - name: Pre-create environments
         run: |

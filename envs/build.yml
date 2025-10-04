@@ -14,7 +14,7 @@ dependencies:
   - networkx=3.2.1
   - click=8.1.7
   - biopython=1.83
-  - samtools=1.18
+  - samtools>=1.17,<1.20
   - pip
   - pip:
       - pykofamsearch==2025.9.5
