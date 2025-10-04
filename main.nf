@@ -16,21 +16,45 @@ include { PROFILE_TAX          } from './modules/profile_tax.nf'
 include { PROFILE_FUNC         } from './modules/profile_func.nf'
 include { MERGE_ARTIFACTS      } from './modules/merge_artifacts.nf'
 
+def requireParam(value, String flag, String runMode) {
+  def normalized = (value instanceof CharSequence) ? value.toString().trim() : value
+  if( normalized == null || (normalized instanceof CharSequence && !normalized) ) {
+    throw new IllegalArgumentException("Missing --${flag} when running in mode '${runMode}'.")
+  }
+  normalized
+}
+
 workflow {
-  if( params.mode == 'build' ) {
+  def runMode = (params.mode ?: 'all').toString()
+
+  if( runMode == 'build' ) {
+    requireParam(params.genomes_dir, 'genomes_dir', runMode)
     build_phase()
   }
-  else if( params.mode == 'profile' ) {
-    profile_phase(nextflow.Channel.value(params.index_dir))
+  else if( runMode == 'profile' ) {
+    def readsChannel = nextflow.Channel.fromFilePairs(
+      requireParam(params.reads, 'reads', runMode),
+      checkIfExists: true
+    )
+    def indexChannel = nextflow.Channel.value(requireParam(params.index_dir, 'index_dir', runMode))
+    profile_phase(readsChannel, indexChannel)
     merge_phase(profile_phase.out.barrier)
   }
-  else if( params.mode == 'all' ) {
+  else if( runMode == 'all' ) {
+    requireParam(params.genomes_dir, 'genomes_dir', runMode)
+    def readsChannel = nextflow.Channel.fromFilePairs(
+      requireParam(params.reads, 'reads', runMode),
+      checkIfExists: true
+    )
     build_phase()
-    profile_phase(build_phase.out.index_dir)
+    profile_phase(readsChannel, build_phase.out.index_dir)
     merge_phase(profile_phase.out.barrier)
   }
-  else if( params.mode == 'merge' ) {
+  else if( runMode == 'merge' ) {
     merge_phase(nextflow.Channel.value('ok'))
+  }
+  else {
+    throw new IllegalArgumentException("Unsupported params.mode '${params.mode}'. Choose from: build, profile, merge, all.")
   }
 }
 
@@ -84,11 +108,11 @@ workflow build_phase {
 
 workflow profile_phase {
   take:
+    reads
     index_dir
   main:
-    READS = nextflow.Channel.fromFilePairs(params.reads, checkIfExists: true)
-    PROFILE_TAX( READS, index_dir )
-    PROFILE_FUNC( READS, index_dir )
+    PROFILE_TAX( reads, index_dir )
+    PROFILE_FUNC( reads, index_dir )
     barrier = PROFILE_TAX.out.done.mix(PROFILE_FUNC.out.done).collect()
   emit:
     barrier

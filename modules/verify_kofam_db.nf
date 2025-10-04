@@ -44,13 +44,7 @@ process VERIFY_KOFAM_DB {
         sample_bad=1
         break
       fi
-      if python - "\$hmm_file" <<'PY'
-import sys
-with open(sys.argv[1], "rb") as handle:
-    data = handle.read(4096)
-sys.exit(0 if b"\x00" in data else 1)
-PY
-      then
+      if python -c "import sys; data=open(sys.argv[1],'rb').read(4096); sys.exit(0 if 0 in data else 1)" \"\$hmm_file\"; then
         sample_bad=1
         break
       fi
