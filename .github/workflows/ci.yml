@@ -24,9 +24,14 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: 'latest'
-          cache-environment: false
-          cache-downloads: false
+          micromamba-version: '1.5.6'
+          cache-environment: true
+          cache-downloads: true
+
+      - name: Micromamba Info
+        run: |
+          micromamba --version
+          micromamba info
 
       - name: Pre-create environments
         run: |
