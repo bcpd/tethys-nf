@@ -27,6 +27,7 @@ jobs:
           micromamba-version: '1.5.6-0'
           cache-environment: false
           cache-downloads: true
+          cache-downloads-key: micromamba-downloads-${{ runner.os }}-${{ hashFiles('envs/*.yml') }}
 
       - name: Micromamba Info
         run: |
@@ -38,6 +39,15 @@ jobs:
           mkdir -p .conda/envs
           micromamba create -p .conda/envs/tethys-build -f envs/build.yml -y
           micromamba create -p .conda/envs/tethys-profile -f envs/tethys.yml -y
+
+      - name: Verify micromamba environments
+        run: |
+          for env in tethys-build tethys-profile; do
+            if [ ! -d ".conda/envs/${env}" ]; then
+              echo "Micromamba environment ${env} missing!"
+              exit 1
+            fi
+          done
 
       - name: Install Nextflow
         run: |
