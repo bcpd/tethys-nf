@@ -35,10 +35,35 @@ jobs:
           micromamba --version
           micromamba info
 
-      - name: Pre-create environments
+      - name: Ensure micromamba environments
         run: |
-          micromamba env create -n tethys-build -f envs/build.yml -y
-          micromamba env create -n tethys-profile -f envs/tethys.yml -y
+          set -euo pipefail
+          echo 'Existing micromamba environments (before ensure step):'
+          micromamba env list || true
+          for env in tethys-build tethys-profile; do
+            if [ "$env" = "tethys-build" ]; then
+              file=envs/build.yml
+            else
+              file=envs/tethys.yml
+            fi
+            if [ ! -f "$file" ]; then
+              echo "Missing environment file $file"
+              exit 1
+            fi
+            if micromamba env list | awk 'NR>2 {print $1}' | grep -qx "$env"; then
+              echo "Updating existing environment $env from $file"
+              micromamba env update -n "$env" -f "$file" -y || {
+                echo "Update failed; deleting and recreating $env"
+                micromamba env remove -n "$env" -y || true
+                micromamba env create -n "$env" -f "$file" -y
+              }
+            else
+              echo "Creating environment $env from $file"
+              micromamba env create -n "$env" -f "$file" -y
+            fi
+          done
+          echo 'Micromamba environments after ensure step:'
+          micromamba env list
 
       - name: Verify micromamba environments
         run: |
