@@ -39,6 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           cd "${GITHUB_WORKSPACE}"
+          echo "Current workspace: $(pwd)"
+          ls -R envs
           echo 'Existing micromamba environments (before ensure step):'
           micromamba env list || true
           for env in tethys-build tethys-profile; do
@@ -71,6 +73,8 @@ jobs:
           set -euo pipefail
           cd "${GITHUB_WORKSPACE}"
           : "${MAMBA_ROOT_PREFIX:?not set}"
+          echo "Current workspace: $(pwd)"
+          ls envs
           for env in tethys-build tethys-profile; do
             env_path="${MAMBA_ROOT_PREFIX}/envs/${env}"
             if [ ! -d "$env_path" ]; then
