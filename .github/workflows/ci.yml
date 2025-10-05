@@ -25,6 +25,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           micromamba-version: '1.5.6-0'
+          micromamba-root-path: .conda
           cache-environment: false
           cache-downloads: true
           cache-downloads-key: micromamba-downloads-${{ runner.os }}-${{ hashFiles('envs/*.yml') }}
@@ -36,15 +37,16 @@ jobs:
 
       - name: Pre-create environments
         run: |
-          mkdir -p .conda/envs
-          micromamba create -p .conda/envs/tethys-build -f envs/build.yml -y
-          micromamba create -p .conda/envs/tethys-profile -f envs/tethys.yml -y
+          micromamba env create -n tethys-build -f envs/build.yml -y
+          micromamba env create -n tethys-profile -f envs/tethys.yml -y
 
       - name: Verify micromamba environments
         run: |
+          : "${MAMBA_ROOT_PREFIX:?not set}"
           for env in tethys-build tethys-profile; do
-            if [ ! -d ".conda/envs/${env}" ]; then
+            if [ ! -d "${MAMBA_ROOT_PREFIX}/envs/${env}" ]; then
               echo "Micromamba environment ${env} missing!"
+              ls -R ${MAMBA_ROOT_PREFIX}
               exit 1
             fi
           done
