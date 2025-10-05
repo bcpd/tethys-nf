@@ -50,7 +50,8 @@ jobs:
               file=envs/tethys.yml
             fi
             if [ ! -f "$file" ]; then
-              echo "Missing environment file $file"
+              echo "Missing environment file $file (cwd: $(pwd))"
+              find envs -maxdepth 2 -type f -print
               exit 1
             fi
             if micromamba env list | awk 'NR>2 {print $1}' | grep -qx "$env"; then
