@@ -31,11 +31,13 @@ def process_genomic_databases_and_check_inputs(fasta, feature_mapping, genomes, 
         assert "\t" in first_line
         fields = first_line.split("\t")
         assert len(fields) in {3,4}, "Expecting fields: [id_gene, features, id_genome, (Optional: id_genome_cluster)]"
+        contains_genome_cluster_mapping = len(fields) == 4
         if len(fields) == 3:
             id_gene, features, id_genome  = fields
             gene_to_data[id_gene]["features"] = eval(features)
             gene_to_data[id_gene]["id_genome"] = id_genome
             gene_to_data[id_gene]["id_genome_cluster"] = None
+            genome_to_data[id_genome]["id_genome_cluster"] = None
             for line in tqdm(f, f"Loading feature mapping: {feature_mapping}"):
                 line = line.strip()
                 if line:
@@ -58,7 +60,7 @@ def process_genomic_databases_and_check_inputs(fasta, feature_mapping, genomes, 
                     gene_to_data[id_gene]["id_genome"] = id_genome
                     gene_to_data[id_gene]["id_genome_cluster"] = id_genome_cluster
                     genome_to_data[id_genome]["id_genome_cluster"] = id_genome_cluster
-        config["contains_genome_cluster_mapping"] = True
+        config["contains_genome_cluster_mapping"] = contains_genome_cluster_mapping
     for id_gene, data in gene_to_data.items():
         features_from_data.update(data["features"])
     genes_from_feature_mapping = set(gene_to_data.keys())
@@ -159,4 +161,3 @@ def run_sylph_genomes_sketcher(logger, log_directory, sylph_executable, n_jobs, 
 def run_kegg_pathway_downloader(logger, log_directory, pathway_database_downloader_executable,  index_directory, no_intermediate_files):
     cmd = RunShellCommand(command=[pathway_database_downloader_executable,'--download','--force','--no_intermediate_files' if no_intermediate_files else '', '--database', os.path.join(index_directory,'database','pathway_to_data.pkl.gz')], name='kegg_pathway_downloader')
     logger.info(f"[{cmd.name}] running command: {cmd.command}"); cmd.run(); cmd.dump(log_directory); cmd.check_status(); return cmd
-

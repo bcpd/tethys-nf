@@ -1,3 +1,5 @@
+nextflow.enable.types = true
+
 process TETHYS_PREPROCESS {
   tag "preprocess"
   label 'TETHYS_PREPROCESS'
@@ -5,11 +7,11 @@ process TETHYS_PREPROCESS {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path manifest
-  path annotations
+  manifest: Path
+  annotations: Path
 
   output:
-  path 'build/tethys/preprocess', emit: preprocess
+  preprocess: Path = file('build/tethys/preprocess')
 
   script:
   """

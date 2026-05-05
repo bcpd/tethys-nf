@@ -1,15 +1,20 @@
+nextflow.enable.types = true
+
 process PRODIGAL_PYRO {
   tag { fasta.baseName }
   conda "${projectDir}/envs/build.yml"
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path fasta
+  fasta: Path
 
   output:
-  path "build/prodigal/*.faa", emit: faa
-  path "build/prodigal/*.ffn", emit: ffn
-  path "build/prodigal/*.gff", emit: gff
+  record(
+    genome_id: fasta.baseName,
+    faa: file("build/prodigal/${fasta.baseName}.faa"),
+    ffn: file("build/prodigal/${fasta.baseName}.ffn"),
+    gff: file("build/prodigal/${fasta.baseName}.gff")
+  )
 
   script:
   def id = fasta.baseName
@@ -29,4 +34,3 @@ process PRODIGAL_PYRO {
     | python "${projectDir}/bin/append_geneid_to_prodigal_gff.py" > "build/prodigal/${id}.gff"
   """
 }
-

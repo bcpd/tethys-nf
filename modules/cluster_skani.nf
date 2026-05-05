@@ -1,3 +1,5 @@
+nextflow.enable.types = true
+
 process CLUSTER_SKANI {
   tag "skani"
   label 'CLUSTER_SKANI'
@@ -5,11 +7,13 @@ process CLUSTER_SKANI {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path fasta
+  fasta: List<Path>
 
   output:
-  path 'build/clusters/genome_clusters.tsv', emit: clusters
-  path 'build/clusters/representatives.tsv', emit: representatives
+  record(
+    clusters: file('build/clusters/genome_clusters.tsv'),
+    representatives: file('build/clusters/representatives.tsv')
+  )
 
   script:
   def outdir = 'build/clusters'

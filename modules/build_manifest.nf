@@ -1,3 +1,9 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return value.toString().replace("'", "'\"'\"'")
+}
+
 process BUILD_MANIFEST {
   tag "manifest"
   label 'BUILD_MANIFEST'
@@ -5,34 +11,26 @@ process BUILD_MANIFEST {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path genomes
-  path clusters
+  genome_paths: List<String>
+  ffn_files: List<Path>
+  clusters: Path
+
+  stage:
+  stageAs ffn_files, 'build/prodigal/*'
 
   output:
-  path 'build/tethys/manifest.tsv', emit: manifest
+  manifest: Path = file('build/tethys/manifest.tsv')
 
   script:
   def cl = clusters
-  def shellQuote = { str -> str.replace("'", "'\"'\"'") }
   def clusterPathEsc = shellQuote(cl.toString())
+  def genomePathsText = genome_paths.collect { path -> path.toString() }.join('\n') + '\n'
+  def genomePathsEsc = shellQuote(genomePathsText)
   """
   set -euo pipefail
   mkdir -p build/tethys
 
-  python <<'PY'
-from pathlib import Path
-
-inputs = []
-for entry in Path('.').iterdir():
-    if entry.is_file() and entry.suffix.lower() in {'.fna', '.fa', '.fasta'}:
-        inputs.append(entry.resolve())
-
-inputs.sort()
-
-with open('genome_paths.list', 'w') as fh:
-    for path in inputs:
-        fh.write(f"{path}\n")
-PY
+  printf '%s' '${genomePathsEsc}' > genome_paths.list
 
   python "${projectDir}/bin/tethys-build-manifest.py" \
     --genomes_list genome_paths.list \

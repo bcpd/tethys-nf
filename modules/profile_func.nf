@@ -1,3 +1,9 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return "'" + value.toString().replace("'", "'\"'\"'") + "'"
+}
+
 process PROFILE_FUNC {
   tag { sample_id }
   label 'PROFILE_FUNC'
@@ -5,25 +11,34 @@ process PROFILE_FUNC {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  tuple val(sample_id), path(reads)
-  val index_dir
+  record(
+    sample_id: String,
+    fastq_1: Path,
+    fastq_2: Path
+  )
+  index_dir: String
 
   output:
-  path "profile/func/sample=${sample_id}/output/*"
-  path ".done", emit: done
+  record(
+    sample_id: sample_id,
+    outputs: files("profile/func/sample=${sample_id}/output/*"),
+    done: file(".done")
+  )
 
   script:
-  def r1 = reads.find{ it.name =~ /R1/ }
-  def r2 = reads.find{ it.name =~ /R2/ }
+  if( fastq_1.toString() == fastq_2.toString() ) {
+    throw new IllegalArgumentException("R1 and R2 resolved to the same staged path for sample '${sample_id}': ${fastq_1}")
+  }
+  def outdir = "profile/func/sample=${sample_id}"
   """
   set -euo pipefail
-  outdir=profile/func/sample=${sample_id}
-  mkdir -p "$outdir"
-  python "${projectDir}/bin/tethys-profile-pathway.py" \
-    -1 ${r1} -2 ${r2} -n ${sample_id} \
-    -d ${index_dir} -p ${task.cpus} \
+  outdir=${shellQuote(outdir)}
+  mkdir -p "\$outdir"
+  python ${shellQuote("${projectDir}/bin/tethys-profile-pathway.py")} \
+    -1 ${shellQuote(fastq_1)} -2 ${shellQuote(fastq_2)} -n ${shellQuote(sample_id)} \
+    -d ${shellQuote(index_dir)} -p ${shellQuote(task.cpus)} \
     --salmon_include_mappings --alignment_format sam \
-    -o "$outdir"
+    -o "\$outdir"
   touch .done
   """
 }

@@ -1,3 +1,5 @@
+nextflow.enable.types = true
+
 process CONCAT_KOFAM {
   tag "concat_kofam"
   label 'CONCAT_KOFAM'
@@ -5,10 +7,10 @@ process CONCAT_KOFAM {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path kofam_files
+  kofam_files: List<Path>
 
   output:
-  path 'build/tethys/annotations.tsv.gz', emit: annotations
+  annotations: Path = file('build/tethys/annotations.tsv.gz')
 
   script:
   """

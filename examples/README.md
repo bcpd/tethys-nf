@@ -17,9 +17,13 @@ This directory documents how to prepare a small validation dataset. No files are
    - `examples/mini/reads/sampleA_R1.fastq.gz`
    - `examples/mini/reads/sampleA_R2.fastq.gz`
 
-   Ensure the filenames follow the `*_R1.fastq.gz` / `*_R2.fastq.gz` convention so the pipeline detects them automatically.
+4. Create a samplesheet at `examples/mini/samplesheet.csv`:
+   ```
+   sample_id,fastq_1,fastq_2
+   sampleA,examples/mini/reads/sampleA_R1.fastq.gz,examples/mini/reads/sampleA_R2.fastq.gz
+   ```
 
-4. Optional: pre-download databases to avoid online fetches during tests:
+5. Optional: pre-download databases to avoid online fetches during tests:
    ```
    python bin/tethys-download-kofam-db.py -o databases/kofam
    checkm2 database --download --path databases/checkm2
@@ -33,7 +37,7 @@ With the fixtures in place, run:
 nextflow run . -profile conda,linux -resume \
   --mode all \
   --genomes_dir examples/mini/genomes \
-  --reads "examples/mini/reads/*_{R1,R2}.fastq.gz" \
+  --samplesheet examples/mini/samplesheet.csv \
   --outdir ./results-mini \
   --skip_checkm2 \
   -with-report examples/mini/report.html

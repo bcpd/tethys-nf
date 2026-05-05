@@ -1,17 +1,22 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return value.toString().replace("'", "'\"'\"'")
+}
+
 process VERIFY_CHECKM2_DB {
   tag "checkm2_db"
   label 'VERIFY_CHECKM2_DB'
   conda "envs/checkm2.yml"
 
   input:
-  val checkm2_param
+  checkm2_param: String?
 
   output:
-  val task.ext.verified_dir, emit: db_dir
+  db_dir: String = task.ext.verified_dir
 
   script:
-  def shellQuote = { str -> str.replace("'", "'\"'\"'") }
-  def dbDir = (checkm2_param ?: (System.getenv('CHECKM2DB') ?: "${projectDir}/databases/checkm2")).toString()
+  def dbDir = (checkm2_param ?: (env('CHECKM2DB') ?: "${projectDir}/databases/checkm2")).toString()
   def dbDirEsc = shellQuote(dbDir)
   task.ext.verified_dir = dbDir
 

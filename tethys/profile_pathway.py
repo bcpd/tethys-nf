@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys, os, glob
+from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 import pandas as pd
@@ -9,6 +10,40 @@ from kegg_pathway_profiler.pathways import pathway_coverage_wrapper
 from pyexeggutor import format_bytes, RunShellCommand, check_argument_choice
 
 __program__ = os.path.split(sys.argv[0])[-1]
+
+
+def normalize_profile_sample_id(sample_dir):
+    return sample_dir[len("sample="):] if sample_dir.startswith("sample=") else sample_dir
+
+
+def sample_id_from_profile_filepath(filepath):
+    return normalize_profile_sample_id(Path(filepath).parents[1].name)
+
+
+def add_profile_table(out, filepath, value):
+    sample_id = sample_id_from_profile_filepath(filepath)
+    if sample_id in out:
+        raise ValueError(f"Duplicate normalized sample ID '{sample_id}' while merging {filepath}")
+    out[sample_id] = value
+
+
+def pathway_profile_pattern(profiling_directory, data_type, level, metric):
+    if data_type == "feature_abundances":
+        return f"{profiling_directory}/*/output/{data_type}.{level}.{metric}.parquet"
+    if data_type == "pathway_abundances" and metric == "coverage":
+        return f"{profiling_directory}/*/output/{data_type}.{level}.coverage.parquet"
+    return f"{profiling_directory}/*/output/{data_type}.{level}.parquet"
+
+
+def metric_column(df, data_type, metric):
+    if metric in df.columns:
+        return metric
+    scaled = f"{metric}(scaled)"
+    if scaled in df.columns:
+        return scaled
+    if data_type in {"feature_abundances", "pathway_abundances"}:
+        raise KeyError(f"Missing metric column '{metric}' in columns: {list(df.columns)}")
+    return metric
 
 def run_salmon_quant(logger, log_directory, salmon_executable, samtools_executable, n_jobs, output_directory, index_directory, forward_reads, reverse_reads, minimum_score_fraction, include_mappings, alignment_format, salmon_gzip, salmon_quant_options):
     args = dict(command=[salmon_executable,'quant','--meta','--libType','A','--threads',n_jobs,'--minScoreFraction',minimum_score_fraction,'--index',os.path.join(index_directory,'salmon_index'),'-1',forward_reads,'-2',reverse_reads,'--writeUnmappedNames', salmon_quant_options if salmon_quant_options else '', '--output', output_directory], name='salmon_quant', validate_input_filepaths=[forward_reads, reverse_reads], validate_output_filepaths=[os.path.join(output_directory,'quant.sf.gz') if salmon_gzip else os.path.join(output_directory,'quant.sf')])
@@ -83,16 +118,15 @@ def aggregate_feature_abundance_for_clusters(df_feature_abundance:pd.DataFrame, 
 def merge_pathway_profiling_tables_as_pandas(profiling_directory:str, data_type:str, level='genomes', metric='number_of_reads', fillna_with_zeros:bool=False, sparse:bool=False):
     check_argument_choice(query=data_type, choices={"feature_abundances","feature_prevalence","feature_prevalence-binary","feature_prevalence-ratio","gene_abundances","pathway_abundances"}); check_argument_choice(query=level, choices={"genomes","genome_clusters"}); check_argument_choice(query=metric, choices={"number_of_reads","tpm","coverage"})
     if (level=='genomes' and data_type=='feature_prevalence-ratio') or (data_type!='pathway_abundances' and metric=='coverage'): raise ValueError('Invalid combination')
-    fps = glob.glob(f"{profiling_directory}/*/output/{data_type}.{level}.parquet");
+    fps = glob.glob(pathway_profile_pattern(profiling_directory, data_type, level, metric));
     if not fps: raise FileNotFoundError(f"No {data_type}.{level}.parquet in {profiling_directory}")
     out={}
     if data_type in {"feature_abundances","gene_abundances","pathway_abundances"}:
-        col = f"{metric}(scaled)" if data_type in {"feature_abundances","pathway_abundances"} and metric!='coverage' else metric
         for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')} {metric}"):
-            sid = fp.split('/')[-3]; df = pd.read_parquet(fp); out[sid] = df[col]
+            df = pd.read_parquet(fp); add_profile_table(out, fp, df[metric_column(df, data_type, metric)])
     else:
         for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')}"):
-            sid = fp.split('/')[-3]; df = pd.read_parquet(fp); out[sid] = df.stack()
+            df = pd.read_parquet(fp); add_profile_table(out, fp, df.stack())
     X = pd.DataFrame(out).T
     if fillna_with_zeros: X = X.fillna(0 if data_type=='feature_prevalence-binary' else 0.0)
     if sparse: X = X.astype(pd.SparseDtype('int' if data_type=='feature_prevalence-binary' else 'float', 0 if data_type=='feature_prevalence-binary' else 0.0))
@@ -101,19 +135,18 @@ def merge_pathway_profiling_tables_as_pandas(profiling_directory:str, data_type:
 def merge_pathway_profiling_tables_as_xarray(profiling_directory:str, data_type:str, level='genomes', metric='number_of_reads', fillna_with_zeros:bool=False):
     check_argument_choice(query=data_type, choices={"feature_abundances","feature_prevalence","feature_prevalence-binary","feature_prevalence-ratio","pathway_abundances"}); check_argument_choice(query=level, choices={"genomes","genome_clusters"}); check_argument_choice(query=metric, choices={"number_of_reads","tpm","coverage"})
     if (level=='genomes' and data_type=='feature_prevalence-ratio') or (data_type!='pathway_abundances' and metric=='coverage'): raise ValueError('Invalid combination')
-    fps = glob.glob(f"{profiling_directory}/*/output/{data_type}.{level}.parquet");
+    fps = glob.glob(pathway_profile_pattern(profiling_directory, data_type, level, metric));
     if not fps: raise FileNotFoundError(f"No {data_type}.{level}.parquet in {profiling_directory}")
     out={}
     if data_type in {"feature_abundances","pathway_abundances"}:
-        varlbl = data_type.split('_')[0] + 's'; col = f"{metric}(scaled)" if metric!='coverage' else metric
+        varlbl = data_type.split('_')[0] + 's'
         for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')} {metric}"):
-            sid = fp.split('/')[-3]; df = pd.read_parquet(fp); df = df[col].unstack(); out[sid] = xr.DataArray(df.values, coords=[(level, df.index), (varlbl, df.columns)])
+            df = pd.read_parquet(fp); df = df[metric_column(df, data_type, metric)].unstack(); add_profile_table(out, fp, xr.DataArray(df.values, coords=[(level, df.index), (varlbl, df.columns)]))
     else:
         varlbl = data_type.split('_')[0] + 's'
         for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')}"):
-            sid = fp.split('/')[-3]; df = pd.read_parquet(fp); out[sid] = xr.DataArray(df.values, coords=[(level, df.index), (varlbl, df.columns)])
+            df = pd.read_parquet(fp); add_profile_table(out, fp, xr.DataArray(df.values, coords=[(level, df.index), (varlbl, df.columns)]))
     X = xr.concat(out.values(), dim='samples'); X['samples'] = list(out.keys())
     if data_type in {"feature_prevalence-binary","feature_prevalence"}: X = X.astype(np.int8); X = X.fillna(0) if fillna_with_zeros else X
     else: X = X.astype(np.float32); X = X.fillna(0.0) if fillna_with_zeros else X
     return X
-

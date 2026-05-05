@@ -1,3 +1,5 @@
+nextflow.enable.types = true
+
 process TETHYS_INDEX {
   tag "index"
   label 'TETHYS_INDEX'
@@ -5,16 +7,17 @@ process TETHYS_INDEX {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  path preprocess_dir
+  preprocess_dir: Path
+  pathway_db: String?
 
   output:
-  path 'build/tethys/index', emit: index
+  index: Path = file('build/tethys/index')
 
   script:
   def f = "build/tethys/preprocess/cds.fasta.gz"
   def m = "build/tethys/preprocess/feature_mapping.tsv.gz"
   def g = "build/tethys/preprocess/genomes.tsv.gz"
-  def pdb = params.pathway_db ? "--pathway_database ${params.pathway_db}" : ''
+  def pdb = pathway_db ? "--pathway_database ${pathway_db}" : ''
   """
   set -eu
   mkdir -p build/tethys/index

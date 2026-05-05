@@ -1,3 +1,9 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return value.toString().replace("'", "'\"'\"'")
+}
+
 process CHECKM2 {
   tag "checkm2"
   label 'CHECKM2'
@@ -7,10 +13,10 @@ process CHECKM2 {
   maxRetries 2
 
   input:
-  tuple path(faa_files), val(db_dir)
+  tuple(faa_files: List<Path>, db_dir: String)
 
   output:
-  path "build/checkm2", emit: summary
+  summary: Path = file("build/checkm2")
 
   script:
   if( !faa_files || faa_files.isEmpty() ) {
@@ -19,7 +25,6 @@ process CHECKM2 {
   def indir = 'build/faa_dir'
   def outdir = 'build/checkm2'
   def dmndGlob = "${db_dir}/CheckM2_database/*.dmnd"
-  def shellQuote = { str -> str.replace("'", "'\"'\"'") }
   def linkCmds = faa_files.collect { file ->
     def src = shellQuote(file.toString())
     def dst = shellQuote("${indir}/${file.getName()}")

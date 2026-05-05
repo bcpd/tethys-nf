@@ -1,6 +1,7 @@
 .nextflow*
 .nf-test*
 .conda/
+conf/local.config
 work/
 results/
 results_*/*

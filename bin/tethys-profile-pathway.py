@@ -32,6 +32,34 @@ from tethys.profile_pathway import(
     aggregate_feature_abundance_for_clusters,
 )
 
+
+def _metric_columns(df):
+    read_col = next(c for c in df.columns if c.startswith("number_of_reads"))
+    tpm_col = next(c for c in df.columns if c.startswith("tpm"))
+    return read_col, tpm_col
+
+
+def _write_read_tpm_tables(df, base, output_format):
+    read_col, tpm_col = _metric_columns(df)
+    if output_format == "parquet":
+        df[[read_col]].rename(columns={read_col: "number_of_reads"}).to_parquet(base+".number_of_reads.parquet", index=True)
+        df[[tpm_col]].rename(columns={tpm_col: "tpm"}).to_parquet(base+".tpm.parquet", index=True)
+    else:
+        df[[read_col]].rename(columns={read_col: "number_of_reads"}).to_csv(base+".number_of_reads.tsv.gz", sep="\t")
+        df[[tpm_col]].rename(columns={tpm_col: "tpm"}).to_csv(base+".tpm.tsv.gz", sep="\t")
+
+
+def _write_pathway_tables(df, base, output_format):
+    read_col, tpm_col = _metric_columns(df)
+    renamed = df[[read_col, tpm_col]].rename(columns={read_col: "number_of_reads", tpm_col: "tpm"})
+    if output_format == "parquet":
+        renamed.to_parquet(base+".parquet", index=True)
+        df[["coverage"]].to_parquet(base+".coverage.parquet", index=True)
+    else:
+        renamed.to_csv(base+".tsv.gz", sep="\t")
+        df[["coverage"]].to_csv(base+".coverage.tsv.gz", sep="\t")
+
+
 def main(args=None):
     python_executable = sys.executable
     bin_directory = os.path.dirname(python_executable)
@@ -220,49 +248,40 @@ def main(args=None):
         coverages = calculate_pathway_coverage(genome_to_features, read_pickle(os.path.join(opts.index_directory, "database", "pathway_to_data.pkl.gz")))
         pathway_abundance_base = os.path.join(output_directory, "output", f"pathway_abundances.{level}s")
         df_pathway_abundances = aggregate_pathway_abundance_and_append_coverage(df_feature_abundance, feature_to_pathways, coverages, index_names = [f"id_{level}", "id_pathway"])
-        if opts.output_format == "parquet":
-            df_pathway_abundances[["number_of_reads","tpm"]].to_parquet(pathway_abundance_base+".parquet", index=True)
-            df_pathway_abundances[["coverage"]].to_parquet(pathway_abundance_base+".coverage.parquet", index=True)
-        else:
-            df_pathway_abundances[["number_of_reads","tpm"]].to_csv(pathway_abundance_base+".tsv.gz", sep="\t")
-            df_pathway_abundances[["coverage"]].to_csv(pathway_abundance_base+".coverage.tsv.gz", sep="\t")
+        _write_pathway_tables(df_pathway_abundances, pathway_abundance_base, opts.output_format)
 
     if read_json(os.path.join(opts.index_directory, "config.json")).get("contains_genome_cluster_mapping", False):
         level="genome_cluster"
-        df_feature_abundance_gc = aggregate_feature_abundance_for_clusters(df_feature_abundance, read_pickle(os.path.join(opts.index_directory, "database", "genome_to_data.pkl.gz")))
+        genome_to_data = read_pickle(os.path.join(opts.index_directory, "database", "genome_to_data.pkl.gz"))
+        df_feature_abundance_gc = aggregate_feature_abundance_for_clusters(df_feature_abundance, genome_to_data)
         base = os.path.join(output_directory, "output", f"feature_abundances.{level}s")
-        if opts.output_format == "parquet":
-            df_feature_abundance_gc[["number_of_reads"]].to_parquet(base+".number_of_reads.parquet", index=True)
-            df_feature_abundance_gc[["tpm"]].to_parquet(base+".tpm.parquet", index=True)
-        else:
-            df_feature_abundance_gc[["number_of_reads"]].to_csv(base+".number_of_reads.tsv.gz", sep="\t")
-            df_feature_abundance_gc[["tpm"]].to_csv(base+".tpm.tsv.gz", sep="\t")
+        _write_read_tpm_tables(df_feature_abundance_gc, base, opts.output_format)
 
         prev_base = os.path.join(output_directory, "output", f"feature_prevalence.{level}s")
         prev_bin_base = os.path.join(output_directory, "output", f"feature_prevalence-binary.{level}s")
-        df_feature_prevalence_gc = (df_feature_prevalence.groupby(lambda x: read_pickle(os.path.join(opts.index_directory, "database", "genome_to_data.pkl.gz"))[x]["id_genome_cluster"]).sum())
+        prev_ratio_base = os.path.join(output_directory, "output", f"feature_prevalence-ratio.{level}s")
+        genome_to_cluster = {genome: data["id_genome_cluster"] for genome, data in genome_to_data.items()}
+        df_feature_prevalence_gc = df_feature_prevalence.groupby(lambda x: genome_to_cluster[x]).sum()
+        cluster_sizes = pd.Series(genome_to_cluster).value_counts()
+        df_feature_prevalence_ratio_gc = df_feature_prevalence_gc.div(cluster_sizes, axis=0)
         if opts.output_format == "parquet":
             df_feature_prevalence_gc.to_parquet(prev_base+".parquet", index=True)
             (df_feature_prevalence_gc>0).astype(int).to_parquet(prev_bin_base+".parquet", index=True)
+            df_feature_prevalence_ratio_gc.to_parquet(prev_ratio_base+".parquet", index=True)
         else:
             df_feature_prevalence_gc.to_csv(prev_base+".tsv.gz", sep="\t")
             (df_feature_prevalence_gc>0).astype(int).to_csv(prev_bin_base+".tsv.gz", sep="\t")
+            df_feature_prevalence_ratio_gc.to_csv(prev_ratio_base+".tsv.gz", sep="\t")
 
         if config.get("contains_pathways", False):
             feature_to_pathways = build_feature_pathway_dictionary(read_pickle(os.path.join(opts.index_directory, "database", "pathway_to_data.pkl.gz")))
-            genome_to_data = read_pickle(os.path.join(opts.index_directory, "database", "genome_to_data.pkl.gz"))
             df_path_gc = aggregate_feature_abundance_for_clusters(df_feature_abundance, genome_to_data)
-            df_prev_bin_gc = (df_feature_prevalence>0).astype(int).groupby(lambda x: genome_to_data[x]["id_genome_cluster"]).sum()
+            df_prev_bin_gc = (df_feature_prevalence>0).astype(int).groupby(lambda x: genome_to_cluster[x]).sum()
             genome_to_features_gc = build_feature_prevalence_dictionary(df_prev_bin_gc)
             coverages_gc = calculate_pathway_coverage(genome_to_features_gc, read_pickle(os.path.join(opts.index_directory, "database", "pathway_to_data.pkl.gz")))
             path_base = os.path.join(output_directory, "output", f"pathway_abundances.{level}s")
             df_pathway_gc = aggregate_pathway_abundance_and_append_coverage(df_path_gc, feature_to_pathways, coverages_gc, index_names = [f"id_{level}", "id_pathway"])
-            if opts.output_format == "parquet":
-                df_pathway_gc[["number_of_reads","tpm"]].to_parquet(path_base+".parquet", index=True)
-                df_pathway_gc[["coverage"]].to_parquet(path_base+".coverage.parquet", index=True)
-            else:
-                df_pathway_gc[["number_of_reads","tpm"]].to_csv(path_base+".tsv.gz", sep="\t")
-                df_pathway_gc[["coverage"]].to_csv(path_base+".coverage.tsv.gz", sep="\t")
+            _write_pathway_tables(df_pathway_gc, path_base, opts.output_format)
 
     logger.info(f"Completed pathway profiling: {opts.name}")
     for filepath in glob.glob(os.path.join(output_directory, "output","*")):

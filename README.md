@@ -10,7 +10,7 @@ Tethys-nf is a Nextflow workflow for building gene catalogues from assembled gen
 nextflow run . -profile conda,linux -resume \
   --mode all \
   --genomes_dir /path/to/genomes \
-  --reads "/path/to/reads/*_{R1,R2}.fastq.gz" \
+  --samplesheet /path/to/samplesheet.csv \
   --outdir ./results \
   --kofam_db /central/kofam \
   --checkm2_db /central/checkm2 \
@@ -21,14 +21,16 @@ nextflow run . -profile conda,linux -resume \
 ```
 nextflow run . -profile conda,linux -resume \
   --mode profile \
-  --reads "/path/to/reads/*_{R1,R2}.fastq.gz" \
+  --samplesheet /path/to/samplesheet.csv \
   --index_dir /central/tethys/<catalog>/index \
   --outdir ./results
 ```
 
 > On macOS hosts, swap `linux` for `mac` in the profile string.
 
-> Requires Nextflow `25.04.7` or newer (the pipeline enables DSL2 modules).
+> Requires Nextflow `26.04.0` or newer (the pipeline uses static typing).
+
+The recommended read input is a CSV samplesheet with columns `sample_id,fastq_1,fastq_2`. The legacy `--reads "/path/*_{R1,R2}.fastq.gz"` glob remains available for compatibility, but is deprecated.
 
 ## Environment Setup
 
@@ -51,7 +53,7 @@ conda-lock lock --kind micromamba \
 
 ## Databases
 
-- KOfamScan DB: set `--kofam_db` or conf/local.config; required for KO annotation.
+- KOfamScan DB: set `--kofam_db` or auto-loaded `conf/local.config`; required for KO annotation.
 - Annotation backend: PyKOfamSearch runs by default for faster HMM scoring. Pass `--annotation_backend kofamscan` to use the legacy KOfamScan CLI instead.
 - CheckM2 DB: set `--checkm2_db` or `$CHECKM2DB`. If missing, the pipeline runs `checkm2 database --download --path <dir>` to fetch it.
 - Sylph database: built into the index at `index/database/genomes.syldb`.
@@ -65,7 +67,7 @@ conda-lock lock --kind micromamba \
 nextflow run . -profile conda,linux -resume \
   --mode all \
   --genomes_dir examples/mini/genomes \
-  --reads "examples/mini/reads/*_{R1,R2}.fastq.gz" \
+  --samplesheet examples/mini/samplesheet.csv \
   --outdir ./results-mini \
   --skip_checkm2 \
   -with-report examples/mini/report.html
@@ -94,7 +96,7 @@ nextflow run . -profile conda,linux -resume \
 
 ## Config
 
-- See `conf/local.config.example` for central DB paths; copy to `conf/local.config` and adjust per machine.
+- For machine-local defaults, copy `conf/local.config.example` to `conf/local.config` and adjust paths. The file is optional and is auto-loaded when present.
 - Troubleshooting highlights:
   - **Database provisioning** – Run `python bin/tethys-download-kofam-db.py` and `checkm2 database --download --path <dir>` ahead of time on shared clusters to avoid repeated downloads inside jobs.
   - **External tools** – `tethys-index`/`profile-*` auto-discover `salmon`, `samtools`, and `sylph` on `PATH`. Override with `--salmon_executable`, `--samtools_executable`, or `--sylph_executable` when needed.

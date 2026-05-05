@@ -1,10 +1,26 @@
 #!/usr/bin/env python
 import sys, os, glob, numpy as np, pandas as pd, xarray as xr
+from pathlib import Path
 from tqdm import tqdm
 from collections import OrderedDict
 from pyexeggutor import format_bytes, get_file_size, RunShellCommand, check_argument_choice
 
 __program__ = os.path.split(sys.argv[0])[-1]
+
+
+def normalize_profile_sample_id(sample_dir):
+    return sample_dir[len("sample="):] if sample_dir.startswith("sample=") else sample_dir
+
+
+def sample_id_from_profile_filepath(filepath):
+    return normalize_profile_sample_id(Path(filepath).parents[1].name)
+
+
+def add_profile_table(out, filepath, value):
+    sample_id = sample_id_from_profile_filepath(filepath)
+    if sample_id in out:
+        raise ValueError(f"Duplicate normalized sample ID '{sample_id}' while merging {filepath}")
+    out[sample_id] = value
 
 def check_reads_format(forward_reads, reverse_reads, reads_sketch, logger):
     fmt=None
@@ -39,7 +55,7 @@ def merge_taxonomic_profiling_tables_as_pandas(profiling_directory:str, level='g
     patt=f"{profiling_directory}/*/output/{data_type[:-1]}.{level}.parquet"; fps=glob.glob(patt)
     if not fps: raise FileNotFoundError(f"No {data_type[:-1]}.{level}.parquet in {profiling_directory}")
     for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')}"):
-        sid=fp.split('/')[-3]; out[sid]=pd.read_parquet(fp).squeeze('columns')
+        add_profile_table(out, fp, pd.read_parquet(fp).squeeze('columns'))
     X=pd.DataFrame(out).T
     if fillna_with_zeros: X=X.fillna(0.0)
     if sparse: X=X.astype(pd.SparseDtype('float',0.0))
@@ -55,4 +71,3 @@ def merge_taxonomic_profiling_tables_as_xarray(profiling_directory:str, level='g
         df=merge_taxonomic_profiling_tables_as_pandas(profiling_directory=profiling_directory, level=level, data_type=var, fillna_with_zeros=fillna_with_zeros, sparse=False)
         out[var]=xr.DataArray(df.values, coords=[('samples', df.index), (level, df.columns)])
     X=xr.Dataset(out).astype(np.float32); X = X.fillna(0.0) if fillna_with_zeros else X; return X
-

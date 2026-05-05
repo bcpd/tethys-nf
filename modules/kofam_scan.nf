@@ -1,3 +1,9 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return value.toString().replace("'", "'\"'\"'")
+}
+
 process KOFAM_SCAN {
   tag "kofam"
   label 'KOFAM_SCAN'
@@ -5,16 +11,15 @@ process KOFAM_SCAN {
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-  tuple path(faa), val(kofam_dir)
+  tuple(faa: Path, kofam_dir: String, annotation_backend: String)
 
   output:
-  path 'build/kofam/*.kofam.tsv', emit: kofam
+  kofam: Path = file("build/kofam/${faa.baseName}.kofam.tsv")
 
   script:
   def outdir = 'build/kofam'
   def threads = task.cpus
-  def backend = (params.annotation_backend ?: 'pykofamsearch')
-  def shellQuote = { str -> str.replace("'", "'\"'\"'") }
+  def backend = (annotation_backend ?: 'pykofamsearch')
   def kofamDirEsc = shellQuote(kofam_dir.toString())
   def faaPathEsc = shellQuote(faa.toString())
   def sampleId = faa.baseName
@@ -30,7 +35,7 @@ process KOFAM_SCAN {
     """.stripIndent()
   }
 
-  String runPyKofam = """
+  def runPyKofam = """
     if command -v pykofamsearch >/dev/null 2>&1; then
       pykofamsearch \
         -i '${faaPathEsc}' \
@@ -51,7 +56,7 @@ process KOFAM_SCAN {
     fi
   """.stripIndent()
 
-  String runExecAnnotation = """
+  def runExecAnnotation = """
     exec_annotation \
       --profile '${kofamDirEsc}/profiles' \
       --ko-list '${kofamDirEsc}/ko_list' \

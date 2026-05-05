@@ -1,13 +1,16 @@
+nextflow.enable.types = true
+
 process MERGE_ARTIFACTS {
   conda "${projectDir}/envs/tethys.yml"
   publishDir "${params.outdir}", mode: 'copy', overwrite: true
 
   input:
-    val outdir
-    val _barrier
+  outdir: String
+  done_files: List<Path>
+  index_dir: String
 
   output:
-    path "artifacts/*.nc"
+  artifacts: Set<Path> = files("artifacts/*.nc")
 
   script:
   """
@@ -16,6 +19,7 @@ process MERGE_ARTIFACTS {
   python "${projectDir}/bin/tethys-merge.py" \
     --taxonomic_profiling_directory "${outdir}/profile/tax" \
     --pathway_profiling_directory   "${outdir}/profile/func" \
+    --index_directory "${index_dir}" \
     --output_directory artifacts \
     -e h5netcdf -c 4
   """

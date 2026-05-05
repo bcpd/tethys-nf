@@ -1,16 +1,21 @@
+nextflow.enable.types = true
+
+def shellQuote(value) {
+  return value.toString().replace("'", "'\"'\"'")
+}
+
 process VERIFY_KOFAM_DB {
   tag "kofam_db"
   label 'VERIFY_KOFAM_DB'
   conda "envs/build.yml"
 
   input:
-  val kofam_param
+  kofam_param: String?
 
   output:
-  val task.ext.verified_dir, emit: db_dir
+  db_dir: String = task.ext.verified_dir
 
   script:
-  def shellQuote = { str -> str.replace("'", "'\"'\"'") }
   def dbDir = (kofam_param ?: "${projectDir}/databases/kofam").toString()
   def dbDirEsc = shellQuote(dbDir)
   def downloaderEsc = shellQuote("${projectDir}/bin/tethys-download-kofam-db.py")
