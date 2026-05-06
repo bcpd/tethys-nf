@@ -4,7 +4,7 @@ Tethys-nf is a Nextflow workflow for building gene catalogues from assembled gen
 
 ## Installation
 
-Tethys-nf requires Linux, Java 17 or newer, Nextflow `26.04.0` or newer, and either Micromamba/Conda or Docker for task execution.
+Tethys-nf requires Linux, Java 17 or newer, and Nextflow `26.04.0` or newer. Pipeline tasks can run either in Micromamba-managed Conda environments or in local Docker images.
 
 Install system packages on Ubuntu or Debian:
 
