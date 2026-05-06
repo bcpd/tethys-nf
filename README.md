@@ -2,6 +2,69 @@
 
 Tethys-nf is a Nextflow workflow for building gene catalogues from assembled genomes and profiling short-read metagenomes. It clusters input genomes (Skani), calls genes (Pyrodigal), assigns KO annotations (PyKOfamSearch or KOfamScan), optionally runs CheckM2 quality assessment, generates the *tethys* index, and finally performs taxonomic and functional profiling, emitting merged tables and NetCDF summaries.
 
+## Installation
+
+Tethys-nf requires Linux, Java 17 or newer, Nextflow `26.04.0` or newer, and either Micromamba/Conda or Docker for task execution.
+
+Install system packages on Ubuntu or Debian:
+
+```
+sudo apt-get update
+sudo apt-get install -y curl wget git unzip pigz default-jre docker.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+```
+
+Install system packages on Fedora, RHEL, or Rocky Linux:
+
+```
+sudo dnf install -y curl wget git unzip pigz java-17-openjdk docker
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+```
+
+Log out and back in after adding yourself to the `docker` group.
+
+Install Nextflow:
+
+```
+export NXF_VER=26.04.0
+curl -s https://get.nextflow.io | bash
+mkdir -p "$HOME/.local/bin"
+mv nextflow "$HOME/.local/bin/"
+export PATH="$HOME/.local/bin:$PATH"
+nextflow -version
+```
+
+Clone this repository:
+
+```
+git clone <tethys-nf-repository-url> tethys-nf
+cd tethys-nf
+```
+
+For Micromamba/Conda execution, install Micromamba:
+
+```
+curl -Ls https://micro.mamba.pm/install.sh | bash
+source ~/.bashrc
+micromamba --version
+```
+
+Run with `-profile conda,linux`. Nextflow creates per-process environments from `envs/build.yml`, `envs/tethys.yml`, and `envs/checkm2.yml`.
+
+For Docker execution, build the local images:
+
+```
+docker build -f docker/Dockerfile.build -t tethys-nf-build:latest .
+docker build -f docker/Dockerfile.tethys -t tethys-nf-tethys:latest .
+docker build -f docker/Dockerfile.checkm2 -t tethys-nf-checkm2:latest .
+```
+
+Run with `-profile docker,linux`.
+
+The full tutorial repeats these installation steps and then walks through a human gut mock community dataset.
+
 ## Quickstart
 
 - Build database + profile + merge (all):
@@ -32,7 +95,9 @@ nextflow run . -profile conda,linux -resume \
 
 The recommended read input is a CSV samplesheet with columns `sample_id,fastq_1,fastq_2`. The legacy `--reads "/path/*_{R1,R2}.fastq.gz"` glob remains available for compatibility, but is deprecated.
 
-For a full Linux walkthrough using a human gut mock community, including Micromamba and Docker setup, see [TUTORIAL.md](TUTORIAL.md).
+## Tutorial
+
+For a full Linux walkthrough using a human gut mock community, including installation, data download, Micromamba and Docker execution, and an optional real-stool extension, see [TUTORIAL.md](TUTORIAL.md).
 
 ## Environment Setup
 
