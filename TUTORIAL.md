@@ -78,7 +78,7 @@ Create a small helper environment for downloading tutorial data:
 
 ```bash
 micromamba create -y -n tethys-tutorial -c conda-forge -c bioconda \
-  python=3.11 sra-tools entrez-direct ncbi-datasets-cli seqtk pigz unzip curl wget
+  python=3.11 sra-tools ncbi-datasets-cli seqtk pigz unzip curl wget
 micromamba activate tethys-tutorial
 ```
 
@@ -111,16 +111,11 @@ mkdir -p databases results-human-mock
 
 ## 4. Download mock community genomes
 
-Fetch the assembly accessions attached to PRJNA747117, download their genome FASTA files, and copy them into one genome directory.
+Download the genome data package for PRJNA747117 and copy genome FASTA files into one genome directory.
 
 ```bash
-esearch -db assembly -query PRJNA747117 \
-  | esummary \
-  | xtract -pattern DocumentSummary -element AssemblyAccession \
-  > data/human_gut_mock/metadata/assembly_accessions.txt
-
 datasets download genome accession \
-  --inputfile data/human_gut_mock/metadata/assembly_accessions.txt \
+  PRJNA747117 \
   --include genome \
   --filename data/human_gut_mock/metadata/prjna747117_genomes.zip
 
@@ -138,31 +133,34 @@ These are the reference genomes used to build the tutorial index. Some mock-comm
 
 ## 5. Download and subsample mock reads
 
-Fetch SRA run metadata for PRJNA747117 and select the first paired Illumina WGS run.
+Fetch run metadata for PRJNA747117 from ENA and select the first paired Illumina WGS or metagenomic run.
 
 ```bash
-esearch -db sra -query PRJNA747117 \
-  | efetch -format runinfo \
-  > data/human_gut_mock/metadata/sra_runinfo.csv
+curl -L --retry 5 --retry-delay 5 --fail \
+  "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=PRJNA747117&result=read_run&fields=run_accession,instrument_platform,library_layout,library_strategy&format=tsv&download=false" \
+  -o data/human_gut_mock/metadata/read_runinfo.tsv
 
 python - <<'PY'
-import csv
 from pathlib import Path
 
-runinfo = Path("data/human_gut_mock/metadata/sra_runinfo.csv")
+runinfo = Path("data/human_gut_mock/metadata/read_runinfo.tsv")
 selected = None
-with runinfo.open(newline="") as handle:
-    for row in csv.DictReader(handle):
+with runinfo.open() as handle:
+    header = handle.readline().rstrip("\n").split("\t")
+    for line in handle:
+        if not line.strip():
+            continue
+        row = dict(zip(header, line.rstrip("\n").split("\t")))
         if (
-            row.get("Platform") == "ILLUMINA"
-            and row.get("LibraryLayout") == "PAIRED"
-            and row.get("LibraryStrategy") in {"WGS", "METAGENOMIC"}
+            row.get("instrument_platform") == "ILLUMINA"
+            and row.get("library_layout") == "PAIRED"
+            and row.get("library_strategy") in {"WGS", "METAGENOMIC"}
         ):
-            selected = row["Run"]
+            selected = row["run_accession"]
             break
 
 if selected is None:
-    raise SystemExit("No paired Illumina WGS run found in PRJNA747117 SRA metadata")
+    raise SystemExit("No paired Illumina WGS or metagenomic run found in PRJNA747117 run metadata")
 
 Path("data/human_gut_mock/metadata/selected_run.txt").write_text(selected + "\n")
 print(selected)
