@@ -78,7 +78,7 @@ Create a small helper environment for downloading tutorial data:
 
 ```bash
 micromamba create -y -n tethys-tutorial -c conda-forge -c bioconda \
-  sra-tools entrez-direct ncbi-datasets-cli seqtk pigz unzip curl wget
+  python=3.11 sra-tools entrez-direct ncbi-datasets-cli seqtk pigz unzip curl wget
 micromamba activate tethys-tutorial
 ```
 
