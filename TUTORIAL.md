@@ -1,19 +1,19 @@
-# Tethys-nf Linux Tutorial: Human Gut Mock Community
+# Tethys-nf linux tutorial: human gut mock community
 
-This tutorial runs `tethys-nf` on a low-complexity human gut mock community. It is written for Linux users and includes two execution paths:
+This tutorial runs `tethys-nf` on a low-complexity human gut mock community. It is intended for Linux users and includes two execution paths:
 
 - Micromamba/Conda: closest to the default development setup.
 - Docker: uses local images built from this repository.
 
-The main dataset is NCBI BioProject [PRJNA747117](https://www.ncbi.nlm.nih.gov/bioproject/747117), a synthetic human fecal/gut mock community created for human microbiome measurement controls. It has public reference assemblies and SRA reads. The optional extension uses [SRR1761666](https://www.ncbi.nlm.nih.gov/sra/?term=SRR1761666), a paired-end human gut metagenome, to show how a real stool sample scales.
+The main dataset is NCBI BioProject [PRJNA747117](https://www.ncbi.nlm.nih.gov/bioproject/747117), a synthetic human fecal/gut mock community. It has public reference assemblies and SRA reads. An optional dataset uses [SRR1761666](https://www.ncbi.nlm.nih.gov/sra/?term=SRR1761666), a paired-end human gut metagenome.
 
-## What This Tutorial Does
+## What this tutorial does
 
 The mock run builds a small genome-resolved reference from public mock-community genomes, annotates genes with KOfam, creates a Tethys index, profiles paired-end reads with Sylph and Salmon, and merges sample outputs into NetCDF artifacts.
 
 This is a workflow tutorial, not a complete human stool reference analysis. For real cohorts, replace the mock genomes with an appropriate human gut genome catalog or study-specific MAG catalog, and perform host-read removal before running Tethys-nf.
 
-## 1. Install System Prerequisites
+## 1. Install system prerequisites
 
 Tethys-nf requires Linux, Bash, Git, Java, Nextflow, and either Micromamba or Docker. Nextflow runs on the host even when Docker is used.
 
@@ -62,7 +62,7 @@ cd tethys-nf
 
 If you already cloned the repository, run the remaining commands from the repository root.
 
-## 2. Choose An Execution Backend
+## 2. Choose an execution backend
 
 ### Option A: Micromamba
 
@@ -102,14 +102,14 @@ The image tags map to the three dependency groups used by the workflow:
 
 For data download commands, use either system packages or the Micromamba helper environment from Option A. Docker is used for the pipeline tasks, not for the host-side download commands in this tutorial.
 
-## 3. Prepare Directories
+## 3. Prepare directories
 
 ```bash
 mkdir -p data/human_gut_mock/{metadata,genomes,reads/raw,reads/subsampled}
 mkdir -p databases results-human-mock
 ```
 
-## 4. Download Mock Community Genomes
+## 4. Download mock community genomes
 
 Fetch the assembly accessions attached to PRJNA747117, download their genome FASTA files, and copy them into one genome directory.
 
@@ -136,7 +136,7 @@ find data/human_gut_mock/genomes -name "*.fna" | sort
 
 These are the reference genomes used to build the tutorial index. Some mock-community organisms may be absent if they are not represented by assemblies attached to the BioProject. That is acceptable for a workflow tutorial; use a complete curated reference for biological interpretation.
 
-## 5. Download And Subsample Mock Reads
+## 5. Download and subsample mock reads
 
 Fetch SRA run metadata for PRJNA747117 and select the first paired Illumina WGS run.
 
@@ -205,7 +205,7 @@ EOF
 cat data/human_gut_mock/samplesheet.csv
 ```
 
-## 6. Prepare Databases
+## 6. Prepare databases
 
 Download KOfam profiles once and reuse them across runs:
 
@@ -219,7 +219,7 @@ CheckM2 is optional for this tutorial. The default command below uses `--skip_ch
 checkm2 database --download --path databases/checkm2
 ```
 
-## 7. Run The Mock Community Workflow
+## 7. Run the mock community workflow
 
 With Micromamba:
 
@@ -249,7 +249,7 @@ nextflow run . -profile docker,linux -resume \
   -with-report results-human-mock/report.html
 ```
 
-## 8. Inspect Outputs
+## 8. Inspect outputs
 
 Genome clusters are ANI-based pangenome units. Tethys-nf reports compatible outputs at both genome and genome-cluster levels when clusters are present.
 
@@ -278,9 +278,9 @@ Preview a NetCDF file:
 python bin/tethys-info.py --netcdf results-human-mock/artifacts/taxonomic_abundance.genomes.nc
 ```
 
-## 9. Optional: Profile A Real Human Stool Sample
+## 9. Optional: Profile a real human stool sample
 
-This extension uses [SRR1761666](https://www.ncbi.nlm.nih.gov/sra/?term=SRR1761666), a paired-end human gut metagenome with about 5.2 million spots, 1.4 Gbases, and a compressed SRA size of about 781 MB. It profiles the sample against the small mock-community index built above, so results are useful for exercising the workflow and estimating scale, not for complete biological interpretation.
+This extension uses [SRR1761666](https://www.ncbi.nlm.nih.gov/sra/?term=SRR1761666), a paired-end human gut metagenome with about 1.4 Gbases and a compressed SRA size of about 781 MB. It profiles the sample against the small mock-community index built above, so results are useful for testing the workflow and estimating scale, not for complete biological interpretation.
 
 Download and subsample:
 
@@ -347,4 +347,4 @@ These are planning estimates. KOfam annotation and Salmon indexing dominate buil
 - Docker permission denied: log out and back in after `usermod -aG docker "$USER"`.
 - KOfam download fails: retry `python bin/tethys-download-kofam-db.py --outdir databases/kofam` on a stable network, or point `--kofam_db` to a shared copy.
 - SRA downloads are slow: run `vdb-config --interactive` to configure cache location, and keep the cache on a filesystem with enough free space.
-- Private human samples: remove host reads before using this workflow.
+- Human samples: QC and remove host reads before using this workflow.
