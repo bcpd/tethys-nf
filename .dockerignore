@@ -1,0 +1,8 @@
+.conda/
+.git/
+.nextflow*
+databases/
+results*/
+work/
+*.html
+*.log

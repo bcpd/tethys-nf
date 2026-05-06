@@ -1,0 +1,7 @@
+FROM mambaorg/micromamba:1.5.10
+
+COPY --chown=$MAMBA_USER:$MAMBA_USER envs/tethys.yml /tmp/env.yml
+RUN micromamba install -y -n base -f /tmp/env.yml \
+    && micromamba clean --all --yes
+
+ENV PATH=/opt/conda/bin:$PATH

@@ -32,6 +32,8 @@ nextflow run . -profile conda,linux -resume \
 
 The recommended read input is a CSV samplesheet with columns `sample_id,fastq_1,fastq_2`. The legacy `--reads "/path/*_{R1,R2}.fastq.gz"` glob remains available for compatibility, but is deprecated.
 
+For a full Linux walkthrough using a human gut mock community, including Micromamba and Docker setup, see [TUTORIAL.md](TUTORIAL.md).
+
 ## Environment Setup
 
 - Recreate the per-process Conda envs (micromamba recommended):
