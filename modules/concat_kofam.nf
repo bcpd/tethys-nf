@@ -38,7 +38,9 @@ with gzip.open(output_path, 'wt') as out_handle:
                     header_checked = True
                     continue
                 header_checked = True
-                if len(fields) >= 2:
+                if fields[0] == '*' and len(fields) >= 3:
+                    out_handle.write(f"{fields[1]}\\t{fields[2]}\\n")
+                elif len(fields) >= 2 and fields[1].startswith('K'):
                     out_handle.write(f"{fields[0]}\\t{fields[1]}\\n")
 PY
   """

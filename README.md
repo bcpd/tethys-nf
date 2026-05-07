@@ -121,7 +121,7 @@ conda-lock lock --kind micromamba \
 ## Databases
 
 - KOfamScan DB: set `--kofam_db` or auto-loaded `conf/local.config`; required for KO annotation.
-- Annotation backend: PyKOfamSearch runs by default for faster HMM scoring. Pass `--annotation_backend kofamscan` to use the legacy KOfamScan CLI instead.
+- Annotation backend: KOfamScan runs by default for compatibility with current KOfam metadata. Pass `--annotation_backend pykofamsearch` only if your installed PyKOfamSearch version supports your KOfam database.
 - CheckM2 DB: set `--checkm2_db` or `$CHECKM2DB`. If missing, the pipeline runs `checkm2 database --download --path <dir>` to fetch it.
 - Sylph database: built into the index at `index/database/genomes.syldb`.
 

@@ -232,6 +232,7 @@ nextflow run . -profile conda,linux -resume \
   --samplesheet data/human_gut_mock/samplesheet.csv \
   --outdir results-human-mock \
   --kofam_db databases/kofam \
+  --annotation_backend kofamscan \
   --skip_checkm2 \
   --threads 8 \
   -with-report results-human-mock/report.html
@@ -246,6 +247,7 @@ nextflow run . -profile docker,linux -resume \
   --samplesheet data/human_gut_mock/samplesheet.csv \
   --outdir results-human-mock \
   --kofam_db databases/kofam \
+  --annotation_backend kofamscan \
   --skip_checkm2 \
   --threads 8 \
   -with-report results-human-mock/report.html
@@ -348,5 +350,6 @@ These are planning estimates. KOfam annotation and Salmon indexing dominate buil
 - `Cannot find Java`: install Java 17 or newer and confirm `java -version`.
 - Docker permission denied: log out and back in after `usermod -aG docker "$USER"`.
 - KOfam download fails: retry `python bin/tethys-download-kofam-db.py --outdir databases/kofam` on a stable network, or point `--kofam_db` to a shared copy.
+- PyKOfamSearch fails with `KeyError: 'enzyme_commission'`: rerun with `--annotation_backend kofamscan`. This tutorial uses KOfamScan because it is more tolerant of current KOfam metadata.
 - SRA downloads are slow: run `vdb-config --interactive` to configure cache location, and keep the cache on a filesystem with enough free space.
 - Human samples: QC and remove host reads before using this workflow.

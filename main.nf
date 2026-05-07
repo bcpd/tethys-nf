@@ -26,7 +26,7 @@ params {
   outdir: String = 'results'
   threads: Integer = 8
   kofam_db: String? = null
-  annotation_backend: String = 'pykofamsearch'
+  annotation_backend: String = 'kofamscan'
   checkm2_db: String? = null
   pathway_db: String? = null
   index_dir: String? = null
@@ -48,19 +48,7 @@ def requireParam(value, flag, runMode) {
   return normalized
 }
 
-def asList(value) {
-  def items = []
-  if( value == null ) {
-    return items
-  }
-  for( item in value ) {
-    items << item
-  }
-  return items
-}
-
-def requireNonEmptyList(value, label) {
-  def items = asList(value)
+def requireNonEmptyItems(items, label) {
   if( items.isEmpty() ) {
     throw new IllegalArgumentException("${label} is empty.")
   }
@@ -136,24 +124,26 @@ workflow build_phase {
     skip_checkm2: Boolean
 
   main:
-    genomes = channel
-      .fromPath("${genomes_dir}/**/*.fna", checkIfExists: false)
+    genomeFiles = channel
+      .fromPath("${genomes_dir}/*.fna", checkIfExists: false)
+      .mix(channel.fromPath("${genomes_dir}/*.fa", checkIfExists: false))
+      .mix(channel.fromPath("${genomes_dir}/*.fasta", checkIfExists: false))
+      .mix(channel.fromPath("${genomes_dir}/**/*.fna", checkIfExists: false))
       .mix(channel.fromPath("${genomes_dir}/**/*.fa", checkIfExists: false))
       .mix(channel.fromPath("${genomes_dir}/**/*.fasta", checkIfExists: false))
-    genomePaths = genomes
-      .map { genome -> genome.toAbsolutePath().toString() }
-      .collect()
-      .map { collected -> requireNonEmptyList(collected, "--genomes_dir '${genomes_dir}' did not contain any uncompressed .fna, .fa, or .fasta files") }
-    genomeFiles = genomes
-      .collect()
-      .map { collected -> requireNonEmptyList(collected, "--genomes_dir '${genomes_dir}' did not contain any uncompressed .fna, .fa, or .fasta files") }
+      .toSortedList { left, right -> left.toString() <=> right.toString() }
+      .map { files -> requireNonEmptyItems(files, "--genomes_dir '${genomes_dir}' did not contain any uncompressed .fna, .fa, or .fasta files") }
+    genomePaths = genomeFiles
+      .map { files -> files.collect { genome -> genome.toAbsolutePath().toString() } }
+    genomes = genomeFiles
+      .flatMap { files -> files }
 
     cluster_out = CLUSTER_SKANI(genomeFiles)
     prodigal_out = PRODIGAL_PYRO(genomes)
     faa = prodigal_out.map { genome -> genome.faa }
     ffn = prodigal_out.map { genome -> genome.ffn }
-    faaFiles = faa.collect().map { collected -> asList(collected) }
-    ffnFiles = ffn.collect().map { collected -> asList(collected) }
+    faaFiles = faa.toSortedList { left, right -> left.toString() <=> right.toString() }
+    ffnFiles = ffn.toSortedList { left, right -> left.toString() <=> right.toString() }
     clusters = cluster_out.map { cluster -> cluster.clusters }
 
     kofamDb = VERIFY_KOFAM_DB(channel.value(kofam_db))
@@ -161,7 +151,7 @@ workflow build_phase {
       .combine(kofamDb)
       .map { faa_file, db_dir -> tuple(faa_file, db_dir, annotation_backend) }
     kofam_out = KOFAM_SCAN(kofamInput)
-    kofamFiles = kofam_out.collect().map { collected -> asList(collected) }
+    kofamFiles = kofam_out.toSortedList { left, right -> left.toString() <=> right.toString() }
 
     annotations = CONCAT_KOFAM(kofamFiles)
     manifest = BUILD_MANIFEST(genomePaths, ffnFiles, clusters)
@@ -190,7 +180,7 @@ workflow profile_phase {
     func_out = PROFILE_FUNC(reads, index_dir)
     tax_done = tax_out.map { sample -> sample.done }
     func_done = func_out.map { sample -> sample.done }
-    barrier = tax_done.mix(func_done).collect().map { collected -> asList(collected) }
+    barrier = tax_done.mix(func_done).toSortedList { left, right -> left.toString() <=> right.toString() }
 
   emit:
     barrier = barrier

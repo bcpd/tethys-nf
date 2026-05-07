@@ -58,6 +58,43 @@ class HardeningTests(unittest.TestCase):
                 f"sample.v1\t{original}\t{prodigal / 'sample.v1.ffn'}\tPSLC-00001",
             )
 
+    def test_manifest_accepts_two_column_cluster_mapping(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            original = tmp / "sample.v1.fna"
+            original.write_text(">contig\nACGT\n")
+
+            prodigal = tmp / "build" / "prodigal"
+            prodigal.mkdir(parents=True)
+            (prodigal / "sample.v1.ffn").write_text(">gene1\nACGT\n")
+
+            clusters = tmp / "clusters.tsv"
+            clusters.write_text("cluster_id\tmember_id\nPSLC-00001\tsample.v1.fna\n")
+            genomes = tmp / "genomes.list"
+            genomes.write_text(f"{original}\n")
+            manifest = tmp / "manifest.tsv"
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(REPO / "bin" / "tethys-build-manifest.py"),
+                    "--genomes_list",
+                    str(genomes),
+                    "--clusters",
+                    str(clusters),
+                    "--prodigal_dir",
+                    str(prodigal),
+                    "-o",
+                    str(manifest),
+                ],
+                check=True,
+            )
+
+            self.assertEqual(
+                manifest.read_text().strip(),
+                f"sample.v1\t{original}\t{prodigal / 'sample.v1.ffn'}\tPSLC-00001",
+            )
+
     def test_manifest_rejects_duplicate_genome_filenames(self):
         module = load_module("tethys_build_manifest", REPO / "bin" / "tethys-build-manifest.py")
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -88,6 +125,12 @@ class HardeningTests(unittest.TestCase):
             self.assertIn("shellQuote(fastq_2)", source)
             self.assertIn("shellQuote(sample_id)", source)
             self.assertIn("shellQuote(index_dir)", source)
+
+    def test_concat_kofam_supports_kofamscan_detail_tsv(self):
+        source = (REPO / "modules" / "concat_kofam.nf").read_text()
+        self.assertIn("fields[0] == '*'", source)
+        self.assertIn("fields[1]}\\\\t{fields[2]", source)
+        self.assertIn("fields[1].startswith('K')", source)
 
     def test_samplesheet_handles_spaces_and_r_tags_in_sample_id(self):
         with tempfile.TemporaryDirectory() as tmpdir:
