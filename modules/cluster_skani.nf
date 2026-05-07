@@ -41,11 +41,11 @@ inputs.sort()
 
 with open('${flist}', 'w') as fh:
     for path in inputs:
-        fh.write(f"{path}\n")
+        fh.write(f"{path}\\n")
 
 with open('${ids}', 'w') as fh:
     for path in inputs:
-        fh.write(f"{path.name}\t{path}\n")
+        fh.write(f"{path.name}\\t{path}\\n")
 PY
 
   skani triangle --sparse -t ${t} -o skani_output.tsv -l ${flist} \
