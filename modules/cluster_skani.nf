@@ -16,6 +16,9 @@ process CLUSTER_SKANI {
   )
 
   script:
+  if( !fasta || fasta.isEmpty() ) {
+    throw new IllegalArgumentException('CLUSTER_SKANI received no FASTA files')
+  }
   def outdir = 'build/clusters'
   def flist = "genomes.list"
   def ids   = "genome_ids.tsv"

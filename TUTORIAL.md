@@ -126,6 +126,10 @@ find data/human_gut_mock/metadata/prjna747117_genomes/ncbi_dataset/data \
   -name "*.fna" \
   -exec cp {} data/human_gut_mock/genomes/ \;
 
+find data/human_gut_mock/metadata/prjna747117_genomes/ncbi_dataset/data \
+  -name "*.fna.gz" \
+  -exec sh -c 'for f; do gzip -dc "$f" > "data/human_gut_mock/genomes/$(basename "$f" .gz)"; done' sh {} +
+
 find data/human_gut_mock/genomes -name "*.fna" | sort
 ```
 

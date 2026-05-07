@@ -22,6 +22,12 @@ process BUILD_MANIFEST {
   manifest: Path = file('build/tethys/manifest.tsv')
 
   script:
+  if( !genome_paths || genome_paths.isEmpty() ) {
+    throw new IllegalArgumentException('BUILD_MANIFEST received no genome paths')
+  }
+  if( !ffn_files || ffn_files.isEmpty() ) {
+    throw new IllegalArgumentException('BUILD_MANIFEST received no Prodigal FFN files')
+  }
   def cl = clusters
   def clusterPathEsc = shellQuote(cl.toString())
   def genomePathsText = genome_paths.collect { path -> path.toString() }.join('\n') + '\n'

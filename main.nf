@@ -55,6 +55,14 @@ def asList(value) {
   return value.toList()
 }
 
+def requireNonEmptyList(value, label) {
+  def items = asList(value)
+  if( items.isEmpty() ) {
+    throw new IllegalArgumentException("${label} is empty.")
+  }
+  return items
+}
+
 def loadSamplesheet(samplesheet) {
   return channel.of(samplesheet)
     .flatMap { csv -> csv.splitCsv(header: true) }
@@ -125,14 +133,14 @@ workflow build_phase {
 
   main:
     genomeGlob = "${genomes_dir}/**/*.{fna,fa,fasta}"
-    genomes = channel.fromPath(genomeGlob)
+    genomes = channel.fromPath(genomeGlob, checkIfExists: true)
     genomePaths = genomes
       .map { genome -> genome.toAbsolutePath().toString() }
       .collect()
-      .map { collected -> asList(collected) }
+      .map { collected -> requireNonEmptyList(collected, "--genomes_dir '${genomes_dir}' did not contain any uncompressed .fna, .fa, or .fasta files") }
     genomeFiles = genomes
       .collect()
-      .map { collected -> asList(collected) }
+      .map { collected -> requireNonEmptyList(collected, "--genomes_dir '${genomes_dir}' did not contain any uncompressed .fna, .fa, or .fasta files") }
 
     cluster_out = CLUSTER_SKANI(genomeFiles)
     prodigal_out = PRODIGAL_PYRO(genomes)

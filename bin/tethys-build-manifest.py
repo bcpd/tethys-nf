@@ -56,7 +56,10 @@ def main():
                 member_to_cluster[mid] = cid
 
     genome_paths = read_genome_paths(args.genomes_list)
+    if not genome_paths:
+        raise ValueError("--genomes_list did not contain any genome paths")
 
+    rows_written = 0
     with open(args.out, 'w', newline='') as out:
         w = csv.writer(out, delimiter='\t')
         for asm in genome_paths:
@@ -69,8 +72,14 @@ def main():
                 if cid:
                     row.append(cid)
                 w.writerow(row)
+                rows_written += 1
             else:
                 sys.stderr.write(f"[build-manifest] WARNING: Missing CDS for {id_genome}: {ffn}\n")
+
+    if rows_written == 0:
+        raise ValueError(
+            "Manifest would be empty because no genome paths had matching Prodigal .ffn files"
+        )
 
 if __name__ == '__main__':
     main()
