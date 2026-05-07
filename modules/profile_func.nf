@@ -32,6 +32,7 @@ process PROFILE_FUNC {
   def outdir = "profile/func/sample=${sample_id}"
   """
   set -euo pipefail
+  export PYTHONPATH=${shellQuote(projectDir)}:\${PYTHONPATH:-}
   outdir=${shellQuote(outdir)}
   mkdir -p "\$outdir"
   python ${shellQuote("${projectDir}/bin/tethys-profile-pathway.py")} \

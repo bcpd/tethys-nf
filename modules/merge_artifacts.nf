@@ -15,6 +15,7 @@ process MERGE_ARTIFACTS {
   script:
   """
   set -euo pipefail
+  export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
   mkdir -p artifacts
   python "${projectDir}/bin/tethys-merge.py" \
     --taxonomic_profiling_directory "${outdir}/profile/tax" \

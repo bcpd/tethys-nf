@@ -32,6 +32,7 @@ process PROFILE_TAX {
   def outdir = "profile/tax/sample=${sample_id}"
   """
   set -euo pipefail
+  export PYTHONPATH=${shellQuote(projectDir)}:\${PYTHONPATH:-}
   outdir=${shellQuote(outdir)}
   mkdir -p "\$outdir"
 

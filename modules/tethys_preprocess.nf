@@ -16,6 +16,7 @@ process TETHYS_PREPROCESS {
   script:
   """
   set -eu
+  export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
   mkdir -p build/tethys/preprocess
   python "${projectDir}/bin/tethys-preprocess.py" \
     -i ${manifest} \

@@ -14,12 +14,13 @@ process TETHYS_INDEX {
   index: Path = file('build/tethys/index')
 
   script:
-  def f = "build/tethys/preprocess/cds.fasta.gz"
-  def m = "build/tethys/preprocess/feature_mapping.tsv.gz"
-  def g = "build/tethys/preprocess/genomes.tsv.gz"
+  def f = "${preprocess_dir}/cds.fasta.gz"
+  def m = "${preprocess_dir}/feature_mapping.tsv.gz"
+  def g = "${preprocess_dir}/genomes.tsv.gz"
   def pdb = pathway_db ? "--pathway_database ${pathway_db}" : ''
   """
   set -eu
+  export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
   mkdir -p build/tethys/index
   python "${projectDir}/bin/tethys-index.py" \
     -f ${f} \
