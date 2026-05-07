@@ -132,8 +132,10 @@ workflow build_phase {
     skip_checkm2: Boolean
 
   main:
-    genomeGlob = "${genomes_dir}/**/*.{fna,fa,fasta}"
-    genomes = channel.fromPath(genomeGlob, checkIfExists: true)
+    genomes = channel
+      .fromPath("${genomes_dir}/**/*.fna", checkIfExists: false)
+      .mix(channel.fromPath("${genomes_dir}/**/*.fa", checkIfExists: false))
+      .mix(channel.fromPath("${genomes_dir}/**/*.fasta", checkIfExists: false))
     genomePaths = genomes
       .map { genome -> genome.toAbsolutePath().toString() }
       .collect()
