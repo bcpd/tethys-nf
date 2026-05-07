@@ -199,9 +199,12 @@ seqtk sample -s100 data/human_gut_mock/reads/raw/${RUN_ID}_2.fastq.gz 500000 \
 Create the samplesheet:
 
 ```bash
+R1_PATH="$(realpath data/human_gut_mock/reads/subsampled/${RUN_ID}_R1.fastq.gz)"
+R2_PATH="$(realpath data/human_gut_mock/reads/subsampled/${RUN_ID}_R2.fastq.gz)"
+
 cat > data/human_gut_mock/samplesheet.csv <<EOF
 sample_id,fastq_1,fastq_2
-human_gut_mock,data/human_gut_mock/reads/subsampled/${RUN_ID}_R1.fastq.gz,data/human_gut_mock/reads/subsampled/${RUN_ID}_R2.fastq.gz
+human_gut_mock,${R1_PATH},${R2_PATH}
 EOF
 
 cat data/human_gut_mock/samplesheet.csv
@@ -308,7 +311,7 @@ seqtk sample -s100 data/real_stool/reads/raw/SRR1761666_2.fastq.gz 1000000 \
 
 cat > data/real_stool/samplesheet.csv <<EOF
 sample_id,fastq_1,fastq_2
-SRR1761666,data/real_stool/reads/subsampled/SRR1761666_R1.fastq.gz,data/real_stool/reads/subsampled/SRR1761666_R2.fastq.gz
+SRR1761666,$(realpath data/real_stool/reads/subsampled/SRR1761666_R1.fastq.gz),$(realpath data/real_stool/reads/subsampled/SRR1761666_R2.fastq.gz)
 EOF
 ```
 

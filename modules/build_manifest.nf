@@ -36,7 +36,17 @@ process BUILD_MANIFEST {
   mkdir -p build/tethys
 
   printf '%s' '${genomePathsEsc}' > genome_paths.list
-  printf '%s' '${ffnFilesEsc}' > ffn_files.list
+  printf '%s' '${ffnFilesEsc}' > ffn_files.relative.list
+
+  python <<'PY'
+from pathlib import Path
+
+with open('ffn_files.relative.list') as in_handle, open('ffn_files.list', 'w') as out_handle:
+    for line in in_handle:
+        path = line.strip()
+        if path:
+            out_handle.write(f"{Path(path).resolve()}\n")
+PY
 
   python "${projectDir}/bin/tethys-build-manifest.py" \
     --genomes_list genome_paths.list \

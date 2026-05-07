@@ -95,6 +95,16 @@ class HardeningTests(unittest.TestCase):
                 f"sample.v1\t{original}\t{prodigal / 'sample.v1.ffn'}\tPSLC-00001",
             )
 
+    def test_build_manifest_writes_absolute_staged_ffn_paths(self):
+        source = (REPO / "modules" / "build_manifest.nf").read_text()
+        self.assertIn("ffn_files.relative.list", source)
+        self.assertIn("Path(path).resolve()", source)
+
+    def test_tethys_index_does_not_precreate_index_directory(self):
+        source = (REPO / "modules" / "tethys_index.nf").read_text()
+        self.assertIn("mkdir -p build/tethys", source)
+        self.assertNotIn("mkdir -p build/tethys/index", source)
+
     def test_manifest_rejects_duplicate_genome_filenames(self):
         module = load_module("tethys_build_manifest", REPO / "bin" / "tethys-build-manifest.py")
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -121,10 +131,28 @@ class HardeningTests(unittest.TestCase):
             self.assertNotIn("=~ /R1/", source)
             self.assertNotIn("=~ /R2/", source)
             self.assertNotIn("~/(?i)", source)
-            self.assertIn("shellQuote(fastq_1)", source)
-            self.assertIn("shellQuote(fastq_2)", source)
+            self.assertIn("stageAs fastq_1", source)
+            self.assertIn("stageAs fastq_2", source)
+            self.assertIn("shellQuote(stagedFastq1)", source)
+            self.assertIn("shellQuote(stagedFastq2)", source)
             self.assertIn("shellQuote(sample_id)", source)
             self.assertIn("shellQuote(index_dir)", source)
+            self.assertIn("${sample_id}/output/*", source)
+            self.assertNotIn("sample=${sample_id}", source)
+
+    def test_samplesheet_paths_resolve_relative_to_samplesheet(self):
+        source = (REPO / "main.nf").read_text()
+        self.assertIn("def resolveSamplesheetFile", source)
+        self.assertIn("${samplesheet.parent}/${text}", source)
+        self.assertIn("Samplesheet ${columnName} path not found", source)
+
+    def test_merge_discovers_nested_profile_outputs(self):
+        taxonomy_source = (REPO / "tethys" / "profile_taxonomy.py").read_text()
+        pathway_source = (REPO / "tethys" / "profile_pathway.py").read_text()
+        self.assertIn("/**/output/taxonomic_abundance", taxonomy_source)
+        self.assertIn("recursive=True", taxonomy_source)
+        self.assertIn("/**/output/{data_type}", pathway_source)
+        self.assertIn("recursive=True", pathway_source)
 
     def test_concat_kofam_supports_kofamscan_detail_tsv(self):
         source = (REPO / "modules" / "concat_kofam.nf").read_text()

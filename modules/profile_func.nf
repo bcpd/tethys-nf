@@ -18,10 +18,14 @@ process PROFILE_FUNC {
   )
   index_dir: String
 
+  stage:
+  stageAs fastq_1, 'reads_1.fastq.gz'
+  stageAs fastq_2, 'reads_2.fastq.gz'
+
   output:
   record(
     sample_id: sample_id,
-    outputs: files("profile/func/sample=${sample_id}/output/*"),
+    outputs: files("profile/func/${sample_id}/output/*"),
     done: file(".done")
   )
 
@@ -29,14 +33,16 @@ process PROFILE_FUNC {
   if( fastq_1.toString() == fastq_2.toString() ) {
     throw new IllegalArgumentException("R1 and R2 resolved to the same staged path for sample '${sample_id}': ${fastq_1}")
   }
-  def outdir = "profile/func/sample=${sample_id}"
+  def outdir = "profile/func"
+  def stagedFastq1 = 'reads_1.fastq.gz'
+  def stagedFastq2 = 'reads_2.fastq.gz'
   """
   set -euo pipefail
   export PYTHONPATH=${shellQuote(projectDir)}:\${PYTHONPATH:-}
   outdir=${shellQuote(outdir)}
   mkdir -p "\$outdir"
   python ${shellQuote("${projectDir}/bin/tethys-profile-pathway.py")} \
-    -1 ${shellQuote(fastq_1)} -2 ${shellQuote(fastq_2)} -n ${shellQuote(sample_id)} \
+    -1 ${shellQuote(stagedFastq1)} -2 ${shellQuote(stagedFastq2)} -n ${shellQuote(sample_id)} \
     -d ${shellQuote(index_dir)} -p ${shellQuote(task.cpus)} \
     --salmon_include_mappings --alignment_format sam \
     -o "\$outdir"

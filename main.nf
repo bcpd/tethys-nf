@@ -55,14 +55,33 @@ def requireNonEmptyItems(items, label) {
   return items
 }
 
+def resolveSamplesheetFile(samplesheet, rawValue, columnName) {
+  def text = rawValue.toString().trim()
+  if( !text ) {
+    throw new IllegalArgumentException("Samplesheet column '${columnName}' is empty")
+  }
+
+  def direct = file(text)
+  if( direct.exists() ) {
+    return direct
+  }
+
+  def fromSheet = file("${samplesheet.parent}/${text}")
+  if( fromSheet.exists() ) {
+    return fromSheet
+  }
+
+  throw new IllegalArgumentException("Samplesheet ${columnName} path not found: '${text}'")
+}
+
 def loadSamplesheet(samplesheet) {
   return channel.of(samplesheet)
     .flatMap { csv -> csv.splitCsv(header: true) }
     .map { row ->
       record(
         sample_id: row.sample_id.toString(),
-        fastq_1: file(row.fastq_1.toString()),
-        fastq_2: file(row.fastq_2.toString())
+        fastq_1: resolveSamplesheetFile(samplesheet, row.fastq_1, 'fastq_1'),
+        fastq_2: resolveSamplesheetFile(samplesheet, row.fastq_2, 'fastq_2')
       )
     }
 }

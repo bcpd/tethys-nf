@@ -21,7 +21,7 @@ process TETHYS_INDEX {
   """
   set -eu
   export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
-  mkdir -p build/tethys/index
+  mkdir -p build/tethys
   python "${projectDir}/bin/tethys-index.py" \
     -f ${f} \
     -m ${m} \
