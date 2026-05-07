@@ -48,6 +48,13 @@ def requireParam(value, flag, runMode) {
   return normalized
 }
 
+def asList(value) {
+  if( value instanceof List ) {
+    return value
+  }
+  return value.toList()
+}
+
 def loadSamplesheet(samplesheet) {
   return channel.of(samplesheet)
     .flatMap { csv -> csv.splitCsv(header: true) }
@@ -122,11 +129,17 @@ workflow build_phase {
     genomePaths = genomes
       .map { genome -> genome.toAbsolutePath().toString() }
       .collect()
+      .map { collected -> asList(collected) }
+    genomeFiles = genomes
+      .collect()
+      .map { collected -> asList(collected) }
 
-    cluster_out = CLUSTER_SKANI(genomes.collect())
+    cluster_out = CLUSTER_SKANI(genomeFiles)
     prodigal_out = PRODIGAL_PYRO(genomes)
     faa = prodigal_out.map { genome -> genome.faa }
     ffn = prodigal_out.map { genome -> genome.ffn }
+    faaFiles = faa.collect().map { collected -> asList(collected) }
+    ffnFiles = ffn.collect().map { collected -> asList(collected) }
     clusters = cluster_out.map { cluster -> cluster.clusters }
 
     kofamDb = VERIFY_KOFAM_DB(channel.value(kofam_db))
@@ -134,15 +147,16 @@ workflow build_phase {
       .combine(kofamDb)
       .map { faa_file, db_dir -> tuple(faa_file, db_dir, annotation_backend) }
     kofam_out = KOFAM_SCAN(kofamInput)
+    kofamFiles = kofam_out.collect().map { collected -> asList(collected) }
 
-    annotations = CONCAT_KOFAM(kofam_out.collect())
-    manifest = BUILD_MANIFEST(genomePaths, ffn.collect(), clusters)
+    annotations = CONCAT_KOFAM(kofamFiles)
+    manifest = BUILD_MANIFEST(genomePaths, ffnFiles, clusters)
     preprocess = TETHYS_PREPROCESS(manifest, annotations)
     index = TETHYS_INDEX(preprocess, channel.value(pathway_db))
 
     if( !skip_checkm2 ) {
       checkm2Db = VERIFY_CHECKM2_DB(channel.value(checkm2_db))
-      checkm2Input = faa.collect().combine(checkm2Db)
+      checkm2Input = faaFiles.combine(checkm2Db)
       CHECKM2(checkm2Input)
     } else {
       log.warn "[build_phase] Skipping CHECKM2 as requested (params.skip_checkm2=true)"
@@ -162,7 +176,7 @@ workflow profile_phase {
     func_out = PROFILE_FUNC(reads, index_dir)
     tax_done = tax_out.map { sample -> sample.done }
     func_done = func_out.map { sample -> sample.done }
-    barrier = tax_done.mix(func_done).collect()
+    barrier = tax_done.mix(func_done).collect().map { collected -> asList(collected) }
 
   emit:
     barrier = barrier
