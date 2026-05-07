@@ -15,9 +15,6 @@ process BUILD_MANIFEST {
   ffn_files: List<Path>
   clusters: Path
 
-  stage:
-  stageAs ffn_files, 'build/prodigal/*'
-
   output:
   manifest: Path = file('build/tethys/manifest.tsv')
 
@@ -32,16 +29,20 @@ process BUILD_MANIFEST {
   def clusterPathEsc = shellQuote(cl.toString())
   def genomePathsText = genome_paths.collect { path -> path.toString() }.join('\n') + '\n'
   def genomePathsEsc = shellQuote(genomePathsText)
+  def ffnFilesText = ffn_files.collect { path -> path.toString() }.join('\n') + '\n'
+  def ffnFilesEsc = shellQuote(ffnFilesText)
   """
   set -euo pipefail
   mkdir -p build/tethys
 
   printf '%s' '${genomePathsEsc}' > genome_paths.list
+  printf '%s' '${ffnFilesEsc}' > ffn_files.list
 
   python "${projectDir}/bin/tethys-build-manifest.py" \
     --genomes_list genome_paths.list \
     --clusters '${clusterPathEsc}' \
     --prodigal_dir build/prodigal \
+    --ffn_files_list ffn_files.list \
     -o build/tethys/manifest.tsv
   """
 }
