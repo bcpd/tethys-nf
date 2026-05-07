@@ -49,10 +49,14 @@ def requireParam(value, flag, runMode) {
 }
 
 def asList(value) {
-  if( value instanceof List ) {
-    return value
+  def items = []
+  if( value == null ) {
+    return items
   }
-  return value.toList()
+  for( item in value ) {
+    items << item
+  }
+  return items
 }
 
 def requireNonEmptyList(value, label) {
