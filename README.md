@@ -43,7 +43,7 @@ git clone <tethys-nf-repository-url> tethys-nf
 cd tethys-nf
 ```
 
-For Micromamba/Conda execution, install Micromamba:
+### For Micromamba/Conda execution, install Micromamba:
 
 ```
 curl -Ls https://micro.mamba.pm/install.sh | bash
@@ -53,7 +53,7 @@ micromamba --version
 
 Run with `-profile conda,linux`. Nextflow creates per-process environments from `envs/build.yml`, `envs/tethys.yml`, and `envs/checkm2.yml`.
 
-For Docker execution, build the local images:
+### For Docker execution, build the local images:
 
 ```
 docker build -f docker/Dockerfile.build -t tethys-nf-build:latest .
