@@ -19,7 +19,7 @@ process KOFAM_SCAN {
   script:
   def outdir = 'build/kofam'
   def threads = task.cpus
-  def backend = (annotation_backend ?: 'pykofamsearch')
+  def backend = (annotation_backend ?: 'kofamscan')
   def kofamDirEsc = shellQuote(kofam_dir.toString())
   def faaPathEsc = shellQuote(faa.toString())
   def sampleId = faa.baseName

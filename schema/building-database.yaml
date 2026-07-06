@@ -13,7 +13,7 @@ stages:
         description: "A user-provided table mapping genome IDs to their respective assembly and CDS (Coding DNA Sequence) FASTA file paths."
       - name: "Functional Annotations"
         format: "TSV file"
-        description: "A table mapping gene IDs to functional features (e.g., KOs, Pfams, etc.). Within this workflow the table is produced by PyKOfamSearch (default) or KOfamScan, depending on configuration."
+        description: "A table mapping gene IDs to functional features (e.g., KOs, Pfams, etc.). Within this workflow the table is produced by KOfamScan (default) or PyKOfamSearch, depending on configuration."
 
     process:
       - "Parses functional annotations to create a gene-to-feature map."
@@ -21,7 +21,7 @@ stages:
       - "Generates a unified CDS FASTA file containing only these relevant gene sequences."
       - "Creates a master mapping table that links each gene ID to its set of features and its source genome ID."
       - "Generates a filtered list of genome assembly filepaths."
-      - "Captures functional annotations generated upstream with PyKOfamSearch (default) or the legacy KOfamScan CLI."
+      - "Captures functional annotations generated upstream with KOfamScan (default) or PyKOfamSearch."
 
     outputs:
       - name: "Preprocessed Data Directory"

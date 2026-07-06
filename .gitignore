@@ -10,5 +10,6 @@ databases/
 __pycache__/
 *.DS_Store
 codex-transcript-sep19.txt
+20??-??-??_converstations.md
 AGENTS.md
 PLAN.md

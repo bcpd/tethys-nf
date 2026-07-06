@@ -5,4 +5,4 @@ params.pathway_db = null                  // optional
 params.index_dir  = null                  // optional prebuilt Tethys index
 params.skip_checkm2 = false               // set true to skip CHECKM2 step
 params.kofam_cpus  = 2                    // optional: CPUs per KOFAM task (increase/decrease to tune parallelism)
-// params.annotation_backend = 'kofamscan'   // optional: set to 'kofamscan' to use legacy CLI instead of PyKOfamSearch
+// params.annotation_backend = 'pykofamsearch' // optional: use only if PyKOfamSearch supports your KOfam DB metadata
