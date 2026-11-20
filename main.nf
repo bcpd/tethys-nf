@@ -56,18 +56,18 @@ def requireNonEmptyItems(items, label) {
 }
 
 def resolveSamplesheetFile(samplesheet, rawValue, columnName) {
-  def text = rawValue.toString().trim()
+  def text = rawValue?.toString()?.trim()
   if( !text ) {
-    throw new IllegalArgumentException("Samplesheet column '${columnName}' is empty")
+    throw new IllegalArgumentException("Samplesheet column '${columnName}' is missing or empty")
   }
 
   def direct = file(text)
-  if( direct.exists() ) {
+  if( direct.isFile() ) {
     return direct
   }
 
   def fromSheet = file("${samplesheet.parent}/${text}")
-  if( fromSheet.exists() ) {
+  if( fromSheet.isFile() ) {
     return fromSheet
   }
 
@@ -75,14 +75,34 @@ def resolveSamplesheetFile(samplesheet, rawValue, columnName) {
 }
 
 def loadSamplesheet(samplesheet) {
-  return channel.of(samplesheet)
+  return channel.of(file(samplesheet, checkIfExists: true))
     .flatMap { csv -> csv.splitCsv(header: true) }
     .map { row ->
+      def sampleId = row.sample_id?.toString()
+      if( !sampleId?.trim() || sampleId == '.' || sampleId == '..' ||
+          sampleId.any { character -> '/\\*?[]{}'.contains(character) } ) {
+        throw new IllegalArgumentException("Invalid samplesheet sample_id: '${sampleId}'")
+      }
+      def fastq1 = resolveSamplesheetFile(samplesheet, row.fastq_1, 'fastq_1')
+      def fastq2 = resolveSamplesheetFile(samplesheet, row.fastq_2, 'fastq_2')
+      if( fastq1 == fastq2 ) {
+        throw new IllegalArgumentException("R1 and R2 resolve to the same file for sample '${sampleId}'")
+      }
       record(
-        sample_id: row.sample_id.toString(),
-        fastq_1: resolveSamplesheetFile(samplesheet, row.fastq_1, 'fastq_1'),
-        fastq_2: resolveSamplesheetFile(samplesheet, row.fastq_2, 'fastq_2')
+        sample_id: sampleId,
+        fastq_1: fastq1,
+        fastq_2: fastq2
       )
+    }
+    .toList()
+    .flatMap { samples ->
+      requireNonEmptyItems(samples, "Samplesheet '${samplesheet}'")
+      def seen = new HashSet<String>()
+      def duplicate = samples.find { sample -> !seen.add(sample.sample_id) }
+      if( duplicate != null ) {
+        throw new IllegalArgumentException("Duplicate samplesheet sample_id: '${duplicate.sample_id}'")
+      }
+      samples
     }
 }
 
@@ -192,27 +212,35 @@ workflow build_phase {
 workflow profile_phase {
   take:
     reads: Channel<SampleReads>
-    index_dir: Channel<String>
+    index_dir: Channel<Path>
 
   main:
-    tax_out = PROFILE_TAX(reads, index_dir)
-    func_out = PROFILE_FUNC(reads, index_dir)
-    tax_done = tax_out.map { sample -> sample.done }
-    func_done = func_out.map { sample -> sample.done }
-    barrier = tax_done.mix(func_done).toSortedList { left, right -> left.toString() <=> right.toString() }
+    // Nextflow hashes a directory input without checking the files inside it.
+    index_revision = index_dir.map { index ->
+      files("${index}/**", type: 'file', hidden: true)
+        .collect { entry -> "${index.relativize(entry)}\t${java.nio.file.Files.size(entry)}\t${entry.lastModified()}".toString() }
+        .sort()
+    }
+    tax_out = PROFILE_TAX(reads, index_dir, index_revision)
+    func_out = PROFILE_FUNC(reads, index_dir, index_revision)
+    tax_profiles = tax_out.map { tables -> tables.first().parent.parent }
+      .toSortedList { left, right -> left.name <=> right.name }
+    func_profiles = func_out.map { tables -> tables.first().parent.parent }
+      .toSortedList { left, right -> left.name <=> right.name }
 
   emit:
-    barrier = barrier
+    tax = tax_profiles
+    func = func_profiles
 }
 
 workflow merge_phase {
   take:
-    barrier: Channel<List<Path>>
-    index_dir: Channel<String>
-    outdir: String
+    tax_profiles: Channel<List<Path>>
+    func_profiles: Channel<List<Path>>
+    index_dir: Channel<Path?>
 
   main:
-    MERGE_ARTIFACTS(channel.value(outdir), barrier, index_dir)
+    MERGE_ARTIFACTS(tax_profiles, func_profiles, index_dir)
 }
 
 workflow {
@@ -232,14 +260,14 @@ workflow {
     }
     else if( runMode == 'profile' ) {
       samples = loadSampleReads(params.samplesheet, params.reads, runMode)
-      indexChannel = channel.value(requireParam(params.index_dir, 'index_dir', runMode).toString())
-      profileBarrier = profile_phase(samples, indexChannel)
-      merge_phase(profileBarrier, indexChannel, params.outdir)
+      indexChannel = channel.value(file(requireParam(params.index_dir, 'index_dir', runMode), checkIfExists: true))
+      profiles = profile_phase(samples, indexChannel)
+      merge_phase(profiles.tax, profiles.func, indexChannel)
     }
     else if( runMode == 'all' ) {
       genomesDir = requireParam(params.genomes_dir, 'genomes_dir', runMode).toString()
       samples = loadSampleReads(params.samplesheet, params.reads, runMode)
-      buildIndex = build_phase(
+      indexChannel = build_phase(
         genomesDir,
         params.kofam_db,
         params.annotation_backend,
@@ -247,13 +275,16 @@ workflow {
         params.checkm2_db,
         params.skip_checkm2
       )
-      indexChannel = buildIndex.map { index_dir -> index_dir.toString() }
-      profileBarrier = profile_phase(samples, indexChannel)
-      merge_phase(profileBarrier, indexChannel, params.outdir)
+      profiles = profile_phase(samples, indexChannel)
+      merge_phase(profiles.tax, profiles.func, indexChannel)
     }
     else if( runMode == 'merge' ) {
-      indexChannel = channel.value((params.index_dir ?: "${params.outdir}/build/tethys/index").toString())
-      merge_phase(channel.value([] as List<Path>), indexChannel, params.outdir)
+      defaultIndex = file("${params.outdir}/build/tethys/index")
+      mergeIndex = params.index_dir ? file(params.index_dir, checkIfExists: true) : (defaultIndex.exists() ? defaultIndex : null)
+      indexChannel = channel.value(mergeIndex)
+      taxProfiles = channel.value([file("${params.outdir}/profile/tax", checkIfExists: true)])
+      funcProfiles = channel.value([file("${params.outdir}/profile/func", checkIfExists: true)])
+      merge_phase(taxProfiles, funcProfiles, indexChannel)
     }
     else {
       throw new IllegalArgumentException("Unsupported params.mode '${params.mode}'. Choose from: build, profile, merge, all.")

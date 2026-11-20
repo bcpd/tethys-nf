@@ -137,7 +137,6 @@ class HardeningTests(unittest.TestCase):
             self.assertIn("shellQuote(stagedFastq2)", source)
             self.assertIn("shellQuote(sample_id)", source)
             self.assertIn("shellQuote(index_dir)", source)
-            self.assertIn("${sample_id}/output/*", source)
             self.assertNotIn("sample=${sample_id}", source)
 
     def test_samplesheet_paths_resolve_relative_to_samplesheet(self):
@@ -145,14 +144,6 @@ class HardeningTests(unittest.TestCase):
         self.assertIn("def resolveSamplesheetFile", source)
         self.assertIn("${samplesheet.parent}/${text}", source)
         self.assertIn("Samplesheet ${columnName} path not found", source)
-
-    def test_merge_discovers_nested_profile_outputs(self):
-        taxonomy_source = (REPO / "tethys" / "profile_taxonomy.py").read_text()
-        pathway_source = (REPO / "tethys" / "profile_pathway.py").read_text()
-        self.assertIn("/**/output/taxonomic_abundance", taxonomy_source)
-        self.assertIn("recursive=True", taxonomy_source)
-        self.assertIn("/**/output/{data_type}", pathway_source)
-        self.assertIn("recursive=True", pathway_source)
 
     def test_concat_kofam_supports_kofamscan_detail_tsv(self):
         source = (REPO / "modules" / "concat_kofam.nf").read_text()

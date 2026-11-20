@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import sys, os, glob, numpy as np, pandas as pd, xarray as xr
+import sys, os, numpy as np, pandas as pd, xarray as xr
 from pathlib import Path
 from tqdm import tqdm
 from collections import OrderedDict
 from pyexeggutor import format_bytes, get_file_size, RunShellCommand, check_argument_choice
+from tethys.utils import find_profile_tables
 
 __program__ = os.path.split(sys.argv[0])[-1]
 
@@ -52,7 +53,7 @@ def merge_taxonomic_profiling_tables_as_pandas(profiling_directory:str, level='g
     choices={"genomes","genome_clusters"};
     if level not in choices: raise KeyError(f"level must be in {choices}")
     out={}
-    patt=f"{profiling_directory}/**/output/{data_type[:-1]}.{level}.parquet"; fps=sorted(glob.glob(patt, recursive=True))
+    fps = find_profile_tables(profiling_directory, f"{data_type[:-1]}.{level}.parquet")
     if not fps: raise FileNotFoundError(f"No {data_type[:-1]}.{level}.parquet in {profiling_directory}")
     for fp in tqdm(fps, f"Merging {level}-level {data_type.replace('_',' ')}"):
         add_profile_table(out, fp, pd.read_parquet(fp).squeeze('columns'))
@@ -63,9 +64,6 @@ def merge_taxonomic_profiling_tables_as_pandas(profiling_directory:str, level='g
 
 def merge_taxonomic_profiling_tables_as_xarray(profiling_directory:str, level='genomes', fillna_with_zeros:bool=False):
     check_argument_choice(query=level, choices={'genomes','genome_clusters'})
-    tax_fps=sorted(glob.glob(f"{profiling_directory}/**/output/taxonomic_abundance.{level}.parquet", recursive=True)); seq_fps=sorted(glob.glob(f"{profiling_directory}/**/output/sequence_abundance.{level}.parquet", recursive=True))
-    if not tax_fps: raise FileNotFoundError(f"No taxonomic_abundance.{level}.parquet in {profiling_directory}")
-    if not seq_fps: raise FileNotFoundError(f"No sequence_abundance.{level}.parquet in {profiling_directory}")
     out=OrderedDict()
     for var in ['taxonomic_abundances','sequence_abundances']:
         df=merge_taxonomic_profiling_tables_as_pandas(profiling_directory=profiling_directory, level=level, data_type=var, fillna_with_zeros=fillna_with_zeros, sparse=False)

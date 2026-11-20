@@ -94,6 +94,9 @@ nextflow run . -profile conda,linux -resume \
 > Requires Nextflow `26.04.0` or newer (the pipeline uses static typing).
 
 The recommended read input is a CSV samplesheet with columns `sample_id,fastq_1,fastq_2`. The legacy `--reads "/path/*_{R1,R2}.fastq.gz"` glob remains available for compatibility, but is deprecated.
+Use a unique sample ID per row and distinct files for the two mates. Sample IDs may contain spaces. They are used as directory names and cannot contain path separators or glob characters.
+
+The `all` and `profile` modes merge tables from the current workflow run. Use `--mode merge --outdir ./results` to rebuild artifacts from published profile tables. Pass `--index_dir` if the index lives outside the output directory so merge can detect which table groups are optional.
 
 ## Tutorial
 
@@ -140,7 +143,7 @@ nextflow run . -profile conda,linux -resume \
   -with-report examples/mini/report.html
 ```
 
-- Use the same dataset for CI or regression tests: `nextflow run . -params-file examples/mini/params.json`.
+- Run the automated checks with `python -m unittest discover -s tests -v`. CI exercises Nextflow with lightweight command fixtures and checks the production merge against small Parquet tables. The example run above exercises the installed profiling tools and databases.
 
 ## Outputs
 

@@ -2,6 +2,24 @@
 from collections import defaultdict
 import ast
 import gzip
+import os
+
+
+def find_profile_tables(profiling_directory, filename):
+    tables = []
+    missing = []
+    for directory, _, filenames in os.walk(profiling_directory, followlinks=True):
+        if directory == profiling_directory or os.path.basename(directory) != "output":
+            continue
+        if filename in filenames:
+            tables.append(os.path.join(directory, filename))
+        else:
+            missing.append(os.path.basename(os.path.dirname(directory)))
+
+    # A completely absent table group may be optional. A partial group loses sample data.
+    if tables and missing:
+        raise ValueError(f"Missing {filename} for sample(s): {', '.join(sorted(missing))}")
+    return sorted(tables)
 
 
 def _parse_feature_set(value):

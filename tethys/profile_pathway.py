@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, glob
+import sys, os
 from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
@@ -8,6 +8,7 @@ import numpy as np
 import xarray as xr
 from kegg_pathway_profiler.pathways import pathway_coverage_wrapper
 from pyexeggutor import format_bytes, RunShellCommand, check_argument_choice
+from tethys.utils import find_profile_tables
 
 __program__ = os.path.split(sys.argv[0])[-1]
 
@@ -27,12 +28,12 @@ def add_profile_table(out, filepath, value):
     out[sample_id] = value
 
 
-def pathway_profile_pattern(profiling_directory, data_type, level, metric):
+def pathway_profile_filename(data_type, level, metric):
     if data_type == "feature_abundances":
-        return f"{profiling_directory}/**/output/{data_type}.{level}.{metric}.parquet"
+        return f"{data_type}.{level}.{metric}.parquet"
     if data_type == "pathway_abundances" and metric == "coverage":
-        return f"{profiling_directory}/**/output/{data_type}.{level}.coverage.parquet"
-    return f"{profiling_directory}/**/output/{data_type}.{level}.parquet"
+        return f"{data_type}.{level}.coverage.parquet"
+    return f"{data_type}.{level}.parquet"
 
 
 def metric_column(df, data_type, metric):
@@ -118,7 +119,7 @@ def aggregate_feature_abundance_for_clusters(df_feature_abundance:pd.DataFrame, 
 def merge_pathway_profiling_tables_as_pandas(profiling_directory:str, data_type:str, level='genomes', metric='number_of_reads', fillna_with_zeros:bool=False, sparse:bool=False):
     check_argument_choice(query=data_type, choices={"feature_abundances","feature_prevalence","feature_prevalence-binary","feature_prevalence-ratio","gene_abundances","pathway_abundances"}); check_argument_choice(query=level, choices={"genomes","genome_clusters"}); check_argument_choice(query=metric, choices={"number_of_reads","tpm","coverage"})
     if (level=='genomes' and data_type=='feature_prevalence-ratio') or (data_type!='pathway_abundances' and metric=='coverage'): raise ValueError('Invalid combination')
-    fps = sorted(glob.glob(pathway_profile_pattern(profiling_directory, data_type, level, metric), recursive=True));
+    fps = find_profile_tables(profiling_directory, pathway_profile_filename(data_type, level, metric))
     if not fps: raise FileNotFoundError(f"No {data_type}.{level}.parquet in {profiling_directory}")
     out={}
     if data_type in {"feature_abundances","gene_abundances","pathway_abundances"}:
@@ -135,7 +136,7 @@ def merge_pathway_profiling_tables_as_pandas(profiling_directory:str, data_type:
 def merge_pathway_profiling_tables_as_xarray(profiling_directory:str, data_type:str, level='genomes', metric='number_of_reads', fillna_with_zeros:bool=False):
     check_argument_choice(query=data_type, choices={"feature_abundances","feature_prevalence","feature_prevalence-binary","feature_prevalence-ratio","pathway_abundances"}); check_argument_choice(query=level, choices={"genomes","genome_clusters"}); check_argument_choice(query=metric, choices={"number_of_reads","tpm","coverage"})
     if (level=='genomes' and data_type=='feature_prevalence-ratio') or (data_type!='pathway_abundances' and metric=='coverage'): raise ValueError('Invalid combination')
-    fps = sorted(glob.glob(pathway_profile_pattern(profiling_directory, data_type, level, metric), recursive=True));
+    fps = find_profile_tables(profiling_directory, pathway_profile_filename(data_type, level, metric))
     if not fps: raise FileNotFoundError(f"No {data_type}.{level}.parquet in {profiling_directory}")
     out={}
     if data_type in {"feature_abundances","pathway_abundances"}:

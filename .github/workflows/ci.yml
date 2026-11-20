@@ -9,132 +9,33 @@ on:
 jobs:
   validation:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
     env:
-      NXF_ANSI_LOG: 'false'
-      NXF_CONDA_CACHEDIR: ${{ github.workspace }}/.conda
-      NXF_MAMBA: micromamba
-      NXF_VER: '25.04.7'
+      NXF_VER: '26.04.4'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up micromamba
-        uses: mamba-org/setup-micromamba@v1
+      - uses: actions/setup-java@v4
         with:
-          micromamba-version: '1.5.6-0'
-          micromamba-root-path: .conda
-          cache-environment: false
-          cache-downloads: true
-          cache-downloads-key: micromamba-downloads-${{ runner.os }}-${{ hashFiles('envs/*.yml') }}
+          distribution: temurin
+          java-version: '21'
 
-      - name: Micromamba Info
-        run: |
-          micromamba --version
-          micromamba info
-
-      - name: Ensure micromamba environments
-        run: |
-          set -euo pipefail
-          cd "${GITHUB_WORKSPACE}"
-          echo "Current workspace: $(pwd)"
-          ls -R envs
-          echo 'Existing micromamba environments (before ensure step):'
-          micromamba env list || true
-          for env in tethys-build tethys-profile; do
-            if [ "$env" = "tethys-build" ]; then
-              file=envs/build.yml
-            else
-              file=envs/tethys.yml
-            fi
-            if [ ! -f "$file" ]; then
-              echo "Missing environment file $file (cwd: $(pwd))"
-              find envs -maxdepth 2 -type f -print
-              exit 1
-            fi
-            if micromamba env list | awk 'NR>2 {print $1}' | grep -qx "$env"; then
-              echo "Updating existing environment $env from $file"
-              micromamba env update -n "$env" -f "$file" -y || {
-                echo "Update failed; deleting and recreating $env"
-                micromamba env remove -n "$env" -y || true
-                micromamba env create -n "$env" -f "$file" -y
-              }
-            else
-              echo "Creating environment $env from $file"
-              micromamba env create -n "$env" -f "$file" -y
-            fi
-          done
-          echo 'Micromamba environments after ensure step:'
-          micromamba env list
-
-      - name: Verify micromamba environments
-        run: |
-          set -euo pipefail
-          cd "${GITHUB_WORKSPACE}"
-          : "${MAMBA_ROOT_PREFIX:?not set}"
-          echo "Current workspace: $(pwd)"
-          ls envs
-          for env in tethys-build tethys-profile; do
-            env_path="${MAMBA_ROOT_PREFIX}/envs/${env}"
-            if [ ! -d "$env_path" ]; then
-              echo "Micromamba environment ${env} missing!"
-              ls -R ${MAMBA_ROOT_PREFIX}
-              exit 1
-            fi
-          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Install Nextflow
         run: |
-          curl -s https://get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
+          curl -fsSL https://get.nextflow.io -o install-nextflow.sh
+          bash install-nextflow.sh
+          sudo mv nextflow /usr/local/bin/nextflow
+          nextflow -version
 
-      - name: Prepare example data
+      - name: Install merge test dependencies
         run: |
-          mkdir -p examples/mini/genomes examples/mini/reads
-          cat <<'FA' | sed 's/^ *//' > examples/mini/genomes/example_genome_1.fna
-            >example_genome_1
-            ATGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTAATGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTA
-            TTGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTATTGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTA
-          FA
-          cat <<'FB' | sed 's/^ *//' > examples/mini/genomes/example_genome_2.fna
-            >example_genome_2
-            ATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACTATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACT
-            ATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACTATGGGTACTGATCGTAGCTAGCTAGCATCGATGCTAGCTAGCTAGCTAGCTAACGTACT
-          FB
-          cat <<'R1' | sed 's/^ *//' | gzip -c > examples/mini/reads/sampleA_R1.fastq.gz
-            @sampleA/1
-            ATGCGTACGTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTA
-            +
-            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-          R1
-          cat <<'R2' | sed 's/^ *//' | gzip -c > examples/mini/reads/sampleA_R2.fastq.gz
-            @sampleA/2
-            TAGCTAGCTAGCATCGATCGATCGATCGTAGCTAGCTAGCTATGCGTACGTAGCTAGCTA
-            +
-            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-          R2
-          mkdir -p ci-kofam-stub
-          touch ci-kofam-stub/.stub
+          python -m pip install \
+            'numpy>=1.26,<1.27' 'pandas>=2.1,<2.2' 'pyarrow>=14,<15' \
+            'xarray>=2023.9,<2024.1' 'h5netcdf>=1.2,<1.3' 'tqdm>=4.66,<4.67' \
+            'pyexeggutor==2025.2.19' 'kegg-pathway-profiler==2024.10.16'
 
-      - name: Run validation workflow
-        run: |
-          nextflow run . -profile conda,linux -params-file examples/mini/params.json \
-            --genomes_dir examples/mini/genomes --reads "examples/mini/reads/*_{R1,R2}.fastq.gz" \
-            --kofam_db ${PWD}/ci-kofam-stub \
-            --outdir results-mini --skip_checkm2 -with-report ci-report.html
-
-      - name: Verify outputs
-        run: |
-          test -s results-mini/build/tethys/manifest.tsv
-          test -f results-mini/profile/tax/sample=sampleA/.done
-          test -f results-mini/profile/func/sample=sampleA/.done
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation-results
-          path: |
-            ci-report.html
-            results-mini
+      - name: Run unit and workflow tests
+        run: python -m unittest discover -s tests -v

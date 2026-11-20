@@ -16,16 +16,17 @@ process VERIFY_CHECKM2_DB {
   db_dir: String = task.ext.verified_dir
 
   script:
-  def dbDir = (checkm2_param ?: (env('CHECKM2DB') ?: "${projectDir}/databases/checkm2")).toString()
+  def dbDir = file(checkm2_param ?: (env('CHECKM2DB') ?: "${projectDir}/databases/checkm2")).toString()
   def dbDirEsc = shellQuote(dbDir)
   task.ext.verified_dir = dbDir
 
   """
   set -euo pipefail
 
-  dmnd_glob='${dbDirEsc}/CheckM2_database/*.dmnd'
+  db_dir='${dbDirEsc}'
+  dmnd_glob="\$db_dir/CheckM2_database/*.dmnd"
 
-  mkdir -p '${dbDirEsc}'
+  mkdir -p "\$db_dir"
 
   if ! compgen -G "\$dmnd_glob" > /dev/null; then
     tries=0
@@ -33,9 +34,12 @@ process VERIFY_CHECKM2_DB {
     until compgen -G "\$dmnd_glob" > /dev/null; do
       tries=\$((tries+1))
       echo "[VERIFY_CHECKM2_DB] Download attempt \$tries/\$max_tries..." >&2
-      checkm2 database --download --path '${dbDirEsc}' || true
+      checkm2 database --download --path "\$db_dir" || true
+      if compgen -G "\$dmnd_glob" > /dev/null; then
+        break
+      fi
       if [ "\$tries" -ge "\$max_tries" ]; then
-        echo "[VERIFY_CHECKM2_DB] Failed to provision CheckM2 database in ${dbDir}." >&2
+        echo "[VERIFY_CHECKM2_DB] Failed to provision CheckM2 database in '\$db_dir'." >&2
         exit 1
       fi
       sleep 20
@@ -47,6 +51,6 @@ process VERIFY_CHECKM2_DB {
     exit 1
   fi
 
-  echo "[VERIFY_CHECKM2_DB] Using database directory: ${dbDir}" >&2
+  echo "[VERIFY_CHECKM2_DB] Using database directory: \$db_dir" >&2
   """.stripIndent()
 }
